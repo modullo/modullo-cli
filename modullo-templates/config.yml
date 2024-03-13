@@ -1,0 +1,20 @@
+# Modullo Project Config Template YAML file
+modulloProject:
+  id: {{MODULLO_PROJECT_ID}}
+  name: {{MODULLO_PROJECT_NAME}}
+  version: "v1"
+  description: "Change The World!"
+  domain: "domain.com"
+  email: "email@domain.com"
+  infrastructure:
+    instance: "new" # Default instance - Only "new" supported at the moment.
+    provider: "alibaba"
+    type: "vm"
+    os: "ubuntu" # Default OS. Only "ubuntu" supported at the moment.
+  provisioning:
+    database: "mysql" # Specify database engine. Leave blank to not create a database
+    packages:
+      - apt-transport-https
+      - gnupg2
+    commands:
+      - echo "Hello World!" > sample.txt
