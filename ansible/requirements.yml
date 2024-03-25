@@ -1,0 +1,22 @@
+# Install Roles & Collections from the Ansible Galaxy
+
+
+roles:
+  # Install roles from Ansible Galaxy.
+  - name: geerlingguy.nginx
+  - name: geerlingguy.php
+  - name: geerlingguy.php-versions
+  - name: geerlingguy.mysql
+  - name: geerlingguy.redis
+  - name: geerlingguy.composer
+  - name: geerlingguy.certbot
+  - name: geerlingguy.daemonize
+  - name: geerlingguy.mailhog
+  - name: geerlingguy.pip
+  - name: geerlingguy.supervisor
+
+
+collections:
+  # Install a collection from Ansible Galaxy.
+  - name: community.general
+

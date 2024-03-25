@@ -78,5 +78,3 @@ For the *.yml file:
 Have any queries? Send an email to **support@modullo.io** <!--or [visit the website](https://dorcas.io) and we’ll help you.-->
 
 ---
-# modullo-cli
-# modullo-cli

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Determing IAAS provider
-available_providers="aws-lightsail do-droplet"
+available_providers="aws do"
 
 provider_exists() {
     local provider_list="$1"
@@ -20,18 +20,38 @@ provider_exists() {
     return 1  # No match found, return false (1)
 }
 
-if [ -z "${provider}" ]
-then
-    iaas_provider="aws-lightsail"
+
+
+if provider_exists "$available_providers" "$config_infrastructure_provider"; then
+    echo -e "Specified IAAS Provider would be used"
+    iaas_provider="${config_infrastructure_provider}"
 else
-
-    if provider_exists "$available_providers" "$provider"; then
-        echo -e "Specified IAAS Provider would be used"
-        iaas_provider="${provider}"
-        #"../terraform-modules/${var.iaas_provider}"
-    else
-        echo -e "Specified IAAS Provider is not valid or not permitted."; exit;
-    fi
-
+    echo -e "Specified IAAS Provider is not valid or not permitted. \n"; exit;
 fi
-echo -e "IAAS Provider is: ${iaas_provider}"
+
+
+source modullo-includes/setup-infrastructure.sh # process project details
+
+# Determine infrastructure config based on Modullo config
+declare -A terraformConfig  # Declare an associative array to store contact data
+#terraformConfig=determine_terraform_config "$config_infrastructure_provider"
+
+determine_terraform_config "$iaas_provider" terraformConfig
+
+if [ ${#terraformConfig[@]} -eq 0 ]; then
+    echo -e "Provider Data NOT FOUND for $iaas_provider."; exit;
+else
+    echo -e "Provider data FOUND for $iaas_provider \n"
+
+    # Access values when column name is a variable
+    infrastructure="${config_infrastructure_type}"
+    echo -e "Infrastructure: ${terraformConfig[$infrastructure]} \n"
+    #echo -e "Infratructure: ${terraformConfig[$infrastructure]:-Not available} \n"
+fi
+
+
+# Run final check if terraform file file is ready to go
+
+if grep -q "^ready = \"yes\"" "$PROJECT_FILE_TERRAFORM"; then
+    modulloCreateInfrastructure="yes"
+fi

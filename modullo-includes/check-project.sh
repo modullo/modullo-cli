@@ -19,30 +19,21 @@ if test -f "$PROJECT_FILE_CREDENTIALS" || test -f "$PROJECT_FILE_TERRAFORM" || t
 then
     echo -e "All Required Project Files exists ($PROJECT_FILE_CREDENTIALS, $PROJECT_FILE_TERRAFORM, $PROJECT_FILE_ANSIBLE, $PROJECT_FILE_CONFIG, $PROJECT_FILE_BACKUP); proceeding to use these..."
 
-
-    source modullo-includes/parse-config.sh # process provider details
-
-    # Extract Necessary Variables from Project CONFIG file
-    config_project_name="$(yq '.modulloProject.name' $PROJECT_FILE_CONFIG)"; echo "Project Name: $config_project_name"
-    config_project_id="$(yq '.modulloProject.id' $PROJECT_FILE_CONFIG)"; echo "Project ID: $config_project_id"
-    config_infrastructure_provider="$(yq '.modulloProject.infrastructure.provider' $PROJECT_FILE_CONFIG)"; echo "Project Infrastructure Provider: $config_infrastructure_provider"
-    config_provisioning_packages="$(yq '.modulloProject.provisioning.packages[0]' $PROJECT_FILE_CONFIG)"; echo "Project Provisioning Packages: $config_provisioning_packages"
-    config_provisioning_database="$(yq '.modulloProject.provisioning.database' $PROJECT_FILE_CONFIG)"; echo "Project Provisioning Database: $config_provisioning_database"
-
+    source modullo-includes/parse-config.sh # parse configuration file and extract data
 
     # Extract Necessary Variables from Project CREDENTIALS file
     while IFS=: read -r key pair
     do
-    echo "Reading $key..."
+    echo -e "\n Reading $key..."
 
       if [[ "$key" == "git_user" ]]; then
           credentials_git_user="$pair"
-          echo -e "Github Username READ: $pair"
+          echo -e "Github Username READ: $pair \n"
       fi
     
       if [[ "$key" == "git_pass" ]]; then
           credentials_git_pass="$pair"
-          echo -e "Github Password / Token READ"
+          echo -e "Github Password / Token READ \n"
       fi
     
     done < "$PROJECT_FILE_CREDENTIALS"
