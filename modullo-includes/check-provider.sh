@@ -52,6 +52,6 @@ fi
 
 # Run final check if terraform file file is ready to go
 
-if grep -q "^ready = \"yes\"" "$PROJECT_FILE_TERRAFORM"; then
+if grep -q "^ready = \"yes\"" "$PROJECT_FILE_TERRAFORM" && grep -q "^plan = \"$config_plan_id\"" "$PROJECT_FILE_TERRAFORM"; then
     modulloCreateInfrastructure="yes"
 fi

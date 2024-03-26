@@ -4,6 +4,7 @@ modulloProject:
   name: {{MODULLO_PROJECT_NAME}}
   version: "v1"
   description: "Change The World!"
+  plan: 0
   domain: "domain.com"
   email: "email@domain.com"
   infrastructure:

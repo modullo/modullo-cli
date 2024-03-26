@@ -25,10 +25,10 @@ PROJECT_FILE_BACKUP="projects/${project}/${project}.backup"
 
 if test -f "$PROJECT_FILE_CONFIG";
 then
-    echo -e "Project Config File exists already"
+    echo -e "Project Config File exists already \n"
 else
     mkdir -p "$(dirname ${PROJECT_FILE_CONFIG})" && touch "$PROJECT_FILE_CONFIG"
-    echo -e "Project Config File ($PROJECT_FILE_CONFIG) created";
+    echo -e "Project Config File ($PROJECT_FILE_CONFIG) created \n";
 
     # Read the template file, replace placeholders, and store the result in Project Config File
     PROJECT_ID=$(openssl rand -hex 3 | tr -dc 'a-zA-Z0-9' | head -c 6 | tr '[:upper:]' '[:lower:]')
@@ -42,7 +42,7 @@ fi
 
 if test -f "$PROJECT_FILE_CREDENTIALS";
 then
-    echo -e "Project Credentials File exists already"
+    echo -e "Project Credentials File exists already \n"
 else
     mkdir -p "$(dirname ${PROJECT_FILE_CREDENTIALS})" && touch "$PROJECT_FILE_CREDENTIALS"
 
@@ -53,24 +53,44 @@ else
         -e "s/{{SAMPLE_VALUE_2}}/$SAMPLE_PARAMETER2/g" \
         "modullo-templates/credentials.tmpl" > "$PROJECT_FILE_CREDENTIALS"
 
-    echo -e "Project Credentials File ($PROJECT_FILE_CREDENTIALS) created";
+    echo -e "Project Credentials File ($PROJECT_FILE_CREDENTIALS) created \n";
 fi
 
 
 if test -f "$PROJECT_FILE_TERRAFORM";
 then
-    echo -e "Terraform Parameter File exists already"
+    echo -e "Terraform Parameter File exists already \n"
 
     # Run Provider Infrastructure setup if necessary
-    if [ -z "${provider}" ]
+    if [ -z "${plan}" ]
     then
         # Do nothing if nor flagged
+        echo -e "...\n"
     else
+
         source modullo-includes/parse-config.sh # parse configuration file and extract data
 
         source modullo-includes/setup-infrastructure.sh # process project details
+
+        echo -e "Planning infrastructure setup for provider ($config_infrastructure_provider)...\n"
+
+        # Advise on overite of existing tfvars and tplan (in fact delete tfplan)
+
+
+
+        declare -A providerConfig
+        determine_terraform_config "$config_infrastructure_provider" providerConfig
+
+        if [ ${#providerConfig[@]} -eq 0 ]; then
+            echo -e "Issue determining for $config_infrastructure_provider."; exit;
+        else
+            # Access values when column name is a variable
+            infra="${config_infrastructure_type}"
+            config_infrastructure_type_local="${providerConfig[$infra]}"
+        fi
+
         # Create Terraform files for the infrastructure
-        setup_terraform_config "$terraformConfig"
+        setup_terraform_config "$config_infrastructure_provider"
 
     fi
 
@@ -83,26 +103,26 @@ else
     sed -e "s/{{READY_STATE_VALUE}}/$READY_STATE/g" \
         "modullo-templates/terraform.tmpl" > "$PROJECT_FILE_TERRAFORM"
 
-    echo -e "Terraform Parameter File ($PROJECT_FILE_TERRAFORM) created";
+    echo -e "Terraform Parameter File ($PROJECT_FILE_TERRAFORM) created \n";
 fi
 
 
 if test -f "$PROJECT_FILE_ANSIBLE";
 then
-    echo -e "Ansible Parameter File exists already"
+    echo -e "Ansible Parameter File exists already \n"
 else
     mkdir -p "$(dirname ${PROJECT_FILE_ANSIBLE})" && touch "$PROJECT_FILE_ANSIBLE"
 
-    echo -e "Ansible Parameter File ($PROJECT_FILE_ANSIBLE) created";
+    echo -e "Ansible Parameter File ($PROJECT_FILE_ANSIBLE) created \n";
 fi
 
 if test -f "$PROJECT_FILE_BACKUP";
 then
-    echo -e "Backup Parameter File exists already"
+    echo -e "Backup Parameter File exists already \n"
 else
     mkdir -p "$(dirname ${PROJECT_FILE_BACKUP})" && touch "$PROJECT_FILE_BACKUP"
 
-    echo -e "Backup Parameter File ($PROJECT_FILE_BACKUP) created";
+    echo -e "Backup Parameter File ($PROJECT_FILE_BACKUP) created \n";
 fi
 
 # if test -f "$PROJECT_EXTRA_FILES";
