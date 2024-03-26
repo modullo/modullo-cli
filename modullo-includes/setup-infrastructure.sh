@@ -35,8 +35,8 @@ determine_terraform_config() {
 
 # Local database array of provider infrastructure
 terraform_database=(
-    "do:domain,iaas_provider,region,do_token,do_droplet_size"
-    "aws:domain,iaas_provider,region,access_key,secret_key,route53_zone,iam_user,aws_vm"
+    "do:project,domain,iaas_provider,region,setup_root,do_token,do_droplet_size"
+    "aws:project,domain,iaas_provider,region,setup_root,access_key,secret_key,route53_zone,iam_user,aws_vm"
 )
 
 # Terraform Vars Template
@@ -98,7 +98,6 @@ setup_terraform_config() {
             terraform_module_output_end=$(eval "echo \"$terraform_module_template_end\"")
             echo "$terraform_module_output_end" >> $teraform_file_module
 
-
             # Resume loop to add more variables to module file
             for config in "${configs[@]}"; do
 
@@ -107,6 +106,21 @@ setup_terraform_config() {
                 echo "$terraform_var_output" >> $teraform_file_module
 
             done
+
+            # if we need to escape more => escaped_new_value=$(sed 's/[][\.^$*+?{}\\()|]/\\&/g' <<< "$new_value")
+
+            # Fill some key tfvars
+            sed -i "s/^project = .*/project = \"$config_project_id\"/" "$teraform_file_project"
+            sed -i "s/^domain = .*/domain = \"$(sed 's/[\.\/&]/\\&/g' <<< "$config_project_domain")\"/" "$teraform_file_project"
+            sed -i "s/^iaas_provider = .*/iaas_provider = \"$config_infrastructure_provider\"/" "$teraform_file_project"
+            sed -i "s/^setup_root = .*/setup_root = \"$(sed 's/[\/&]/\\&/g' <<< "$config_project_setup_root")\"/" "$teraform_file_project"
+
+            #"do:project,domain,iaas_provider,region,setup_root,do_token,do_droplet_size"
+
+            echo -e "Infrastructure files successfully created/re-created for provider ($config_infrastructure_provider)...\n"
+
+            echo -e "YOU MAY NEED TO STILL NEED TO FILL MORE VARIABLES. PLEASE CHECK ($teraform_file_project)...\n"
+
 
             # Exit loop
             return

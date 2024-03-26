@@ -5,6 +5,7 @@ modulloProject:
   version: "v1"
   description: "Change The World!"
   plan: 0
+  setup_root: "/home/user/modullo/project/path"
   domain: "domain.com"
   email: "email@domain.com"
   infrastructure:

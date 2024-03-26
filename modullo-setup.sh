@@ -72,25 +72,46 @@ then
 
         source modullo-includes/setup-infrastructure.sh # process project details
 
-        echo -e "Planning infrastructure setup for provider ($config_infrastructure_provider)...\n"
+        proceedWithPlanning="no"
 
-        # Advise on overite of existing tfvars and tplan (in fact delete tfplan)
+        if grep -q "^ready = " "$PROJECT_FILE_TERRAFORM"; then
 
+            # Prompt the user Advise on overite of existing tfvars and tplan (in fact delete tfplan)
+            read -rp "Proceeding with the \"plan\" flag will re-create your terraform files ($PROJECT_FILE_TERRAFORM) and (terraform/module.tf). Do you want to continue? (Y/N): " response
+            response=$(echo "$response" | tr '[:upper:]' '[:lower:]')
 
+            if [[ "$response" == "y" || "$response" == "yes" ]]; then
 
-        declare -A providerConfig
-        determine_terraform_config "$config_infrastructure_provider" providerConfig
+                proceedWithPlanning="yes"
+                
+                echo -e "Planning infrastructure setup for provider ($config_infrastructure_provider)...\n"
 
-        if [ ${#providerConfig[@]} -eq 0 ]; then
-            echo -e "Issue determining for $config_infrastructure_provider."; exit;
+            else
+                echo -e "Skipping the infrastructure planning for provider ($config_infrastructure_provider)...\n"
+            fi
+
         else
-            # Access values when column name is a variable
-            infra="${config_infrastructure_type}"
-            config_infrastructure_type_local="${providerConfig[$infra]}"
+            proceedWithPlanning="yes"
+
+            echo -e "Planning infrastructure setup for provider ($config_infrastructure_provider)...\n"
         fi
 
-        # Create Terraform files for the infrastructure
-        setup_terraform_config "$config_infrastructure_provider"
+        if [[ "$proceedWithPlanning" == "yes" ]]; then
+            declare -A providerConfig
+            determine_terraform_config "$config_infrastructure_provider" providerConfig
+
+            if [ ${#providerConfig[@]} -eq 0 ]; then
+                echo -e "Issue determining for $config_infrastructure_provider."; exit;
+            else
+                # Access values when column name is a variable
+                infra="${config_infrastructure_type}"
+                config_infrastructure_type_local="${providerConfig[$infra]}"
+            fi
+
+            # Create Terraform files for the infrastructure
+            setup_terraform_config "$config_infrastructure_provider"
+        fi
+
 
     fi
 
