@@ -99,21 +99,4 @@ create_database_password "$config_provisioning_database"
 
 
 
-
-
-
-
-# Determing domain name and project structure
-# if [ -z "${domain}" ]
-# then
-#     echo -e "Dorcas TRIAL Domain would be used"
-#     project="${project}"
-#     mode="trial"
-# else
-#     domain="$domain"
-#     echo -e "Dorcas DEPLOYMENT Domain would be used"
-#     project="${domain//./_}"
-#     mode="deployment"
-# fi
-
-# echo -e "Project Name Selected is: ${project} and Project is in ${mode} mode"
+# Validate config setup_root before creating infrastructure/provisioning (proposed) => check specific root file or exist

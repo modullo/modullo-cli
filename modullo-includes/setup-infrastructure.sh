@@ -75,10 +75,12 @@ setup_terraform_config() {
         if [[ "$entry" == "$provider"* ]]; then
 
 
+            local ansible_file_project="$PROJECT_FILE_ANSIBLE"
             local teraform_file_project="$PROJECT_FILE_TERRAFORM"
             local teraform_file_module="terraform/module.tf"
 
             # empty the files file
+            > $ansible_file_project
             > $teraform_file_project
             > $teraform_file_module
 
@@ -87,6 +89,8 @@ setup_terraform_config() {
 
             #echo "ready = \"no\"" >> "$teraform_file_project"; # tfvars file(s) prepend ready tags
 
+            echo "---" >> "$ansible_file_project"; # yaml file prepend line
+
             # Extract the provider data from the entry
             IFS=',' read -r -a configs <<< "${entry#*:}"  # Split the entry into fields
             for config in "${configs[@]}"; do
@@ -94,6 +98,9 @@ setup_terraform_config() {
                 echo "$config = \"\"" >> "$teraform_file_project"; # tfvars file(s) (key value params)
 
                 echo "  $config = var.$config" >> "$teraform_file_module"; # module.tf file (module vars)
+
+                echo "$config: \"\"" >> "$ansible_file_project"; # project.yml ansible
+
             done
 
             terraform_module_output_end=$(eval "echo \"$terraform_module_template_end\"")
@@ -111,11 +118,18 @@ setup_terraform_config() {
             # if we need to escape more => escaped_new_value=$(sed 's/[][\.^$*+?{}\\()|]/\\&/g' <<< "$new_value")
 
             # Fill some key tfvars
-            sed -i "s/^project = .*/project = \"$config_project_id\"/" "$teraform_file_project"
+            sed -i "s/^project = .*/project = \"$config_project_name\"/" "$teraform_file_project"
             sed -i "s/^domain = .*/domain = \"$(sed 's/[\.\/&]/\\&/g' <<< "$config_project_domain")\"/" "$teraform_file_project"
             sed -i "s/^iaas_provider = .*/iaas_provider = \"$config_infrastructure_provider\"/" "$teraform_file_project"
             sed -i "s/^setup_root = .*/setup_root = \"$(sed 's/[\/&]/\\&/g' <<< "$config_project_setup_root")\"/" "$teraform_file_project"
             sed -i "s/^options = .*/options = \"$config_infrastructure_options\"/" "$teraform_file_project"
+
+            # Fill some key yaml
+            sed -i "s/^project: .*/project: \"$config_project_name\"/" "$ansible_file_project"
+            sed -i "s/^domain: .*/domain: \"$(sed 's/[\.\/&]/\\&/g' <<< "$config_project_domain")\"/" "$ansible_file_project"
+            sed -i "s/^iaas_provider: .*/iaas_provider: \"$config_infrastructure_provider\"/" "$ansible_file_project"
+            sed -i "s/^setup_root: .*/setup_root: \"$(sed 's/[\/&]/\\&/g' <<< "$config_project_setup_root")\"/" "$ansible_file_project"
+            sed -i "s/^options: .*/options: \"$config_infrastructure_options\"/" "$ansible_file_project"
 
             # update the plan ID in both tfvars and config
             PLAN_ID=$(openssl rand -hex 3 | tr -dc '0-9' | head -c 10 | tr '[:upper:]' '[:lower:]')

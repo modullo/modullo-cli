@@ -42,7 +42,7 @@ ansible-galaxy install -r ./ansible/requirements.yml
 if [[ "$modulloCreateProvisioning" == "yes" ]]; then
     # Provision Infrastructure using Ansible
 
-    ansible-playbook -i projects/${project}/ansible_inventory ./ansible/dorcas.yml --ssh-common-args="-o IdentitiesOnly=yes -o StrictHostKeyChecking=no" --extra-vars "iaas_provider=${iaas_provider}" --extra-vars "project=${project}" --extra-vars "edition=${edition}" --extra-vars "domain=${domain}" --extra-vars "email=${email}" --extra-vars="setup_root=${setup_root}" --extra-vars "partner_name=${partner_name}" --extra-vars "partner_slug=${partner_slug}" --extra-vars "partner_logo_url=${partner_logo_url}" --extra-vars "git_user=${git_user}" --extra-vars "git_pass=${git_pass}" --extra-vars "db_password=${DB_PASSWORD}" --extra-vars "refresh_apps=${refresh_apps}" --extra-vars "with_portal=${with_portal}" --extra-vars "with_marketplace=${with_marketplace}" --extra-vars "with_knowledge=${with_knowledge}" --extra-vars "with_lms=${with_lms}" --extra-vars "with_university=${with_university}" --extra-vars "with_scheduler=${with_scheduler}"
+    ansible-playbook -i projects/${project}/ansible_inventory ./ansible/modullo-provision.yml --ssh-common-args="-o IdentitiesOnly=yes -o StrictHostKeyChecking=no" --extra-vars "@${project}.yml"
 
 else
 

@@ -1,0 +1,18 @@
+---
+php_version_number: "8.3"
+php_cgi: "127.0.0.1:9000"
+#php_cgi: "unix:/run/php/php8.3-fpm.sock"
+php_packages_list: ["php8.3", "php8.3-cli", "php8.3-fpm", "php8.3-pdo", "php8.3-mysql", "php8.3-ctype", "php8.3-fileinfo", "php8.3-curl", "php8.3-gd","php8.3-zip", "php8.3-mbstring", "php8.3-bcmath", "php8.3-xml", "php-json", "php-tokenizer", "php-xml", "php-zip", "php-mysql"]
+software_system:
+  - zip
+  - unzip
+  - git
+  - build-essential
+  - net-tools
+  - apt-transport-https
+  - ca-certificates
+  - lsb-release
+  - gnupg
+  - php-apcu
+  - python3-pip
+  - libxrender-dev

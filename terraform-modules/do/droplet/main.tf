@@ -9,13 +9,13 @@ resource "tls_private_key" "gen_key" {
 
 resource "local_file" "create_priv_key" {
   content     = tls_private_key.gen_key.private_key_pem
-  filename    = "${path.module}/../../projects/${var.project}/instance-sshkey"
+  filename    = "${var.setup_root}/projects/${var.project}/instance-sshkey"
   file_permission = "0400"
 }
 
 resource "local_file" "create_public_key" {
   content     = tls_private_key.gen_key.public_key_openssh
-  filename    = "${path.module}/../../projects/${var.project}/instance-sshkey.pub"
+  filename    = "${var.setup_root}/projects/${var.project}/instance-sshkey.pub"
   file_permission = "0400"
 }
 
@@ -56,7 +56,7 @@ resource "digitalocean_record" "dns_project" {
   domain = digitalocean_domain.modullo_domain.name
   type   = "A"
   name   = "main"
-  value  = digitalocean_floating_ip.droplet_ip[0].ip_address
+  value  = try(digitalocean_floating_ip.droplet_ip[0].ip_address, digitalocean_droplet.modullo_droplet_instance.ipv4_address)
   ttl    = 300
 }
 
@@ -69,7 +69,7 @@ resource "digitalocean_record" "dns_project" {
       compute-ssh-key = "${var.setup_root}/projects/${var.project}/instance-sshkey"
       }
       )
-      filename = "${path.module}/../../projects/${var.project}/ansible_inventory"
+      filename = "${var.setup_root}/projects/${var.project}/ansible_inventory"
   }
 
 
@@ -85,7 +85,7 @@ resource "digitalocean_record" "dns_project" {
       instance-ip = try(digitalocean_floating_ip.droplet_ip[0].ip_address, digitalocean_droplet.modullo_droplet_instance.ipv4_address),
       }
       )
-      filename = "${path.module}/../../projects/${var.project}/parameters"
+      filename = "${var.setup_root}/projects/${var.project}/parameters"
   }
 
 
