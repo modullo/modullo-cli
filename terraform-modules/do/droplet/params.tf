@@ -16,6 +16,14 @@ variable "project" {
   description = "Project ID"
 }
 
+variable "plan" {
+  description = "Project Plan ID"
+}
+
+variable "ready" {
+  description = "Project Plan Ready State"
+}
+
 
 variable "setup_root" {
   description = "Project Setup Root Path"
@@ -27,6 +35,10 @@ variable "domain" {
 
 variable "region" {
   description = "IAAS Region"
+}
+
+variable "options" {
+  description = "Additional Configuration Options"
 }
 
 variable "do_token" {

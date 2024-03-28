@@ -57,7 +57,9 @@ config_project_setup_root="$(yq '.modulloProject.setup_root' $PROJECT_FILE_CONFI
 config_project_domain="$(yq '.modulloProject.domain' $PROJECT_FILE_CONFIG)"; echo "Plan ID: $config_project_domain"
 config_infrastructure_provider="$(yq '.modulloProject.infrastructure.provider' $PROJECT_FILE_CONFIG)"; echo "Project Infrastructure Provider: $config_infrastructure_provider"
 config_infrastructure_type="$(yq '.modulloProject.infrastructure.type' $PROJECT_FILE_CONFIG)"; echo "Project Infrastructure Type: $config_infrastructure_type"
+config_infrastructure_options="$(yq '.modulloProject.infrastructure.options' $PROJECT_FILE_CONFIG)"; echo "Project Infrastructure Options: $config_infrastructure_options"
 config_provisioning_packages="$(yq '.modulloProject.provisioning.packages[0]' $PROJECT_FILE_CONFIG)"; echo "Project Provisioning Packages: $config_provisioning_packages"
 config_provisioning_database="$(yq '.modulloProject.provisioning.database' $PROJECT_FILE_CONFIG)"; echo "Project Provisioning Database: $config_provisioning_database"
+config_provisioning_options="$(yq '.modulloProject.provisioning.options' $PROJECT_FILE_CONFIG)"; echo "Project Provisioning Options: $config_provisioning_options"
 
 echo -e "\n"

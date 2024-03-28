@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 # Local database array of provider infrastructure
 provider_database=(
     "do:vm=droplet,storage=spaces"
@@ -35,8 +36,8 @@ determine_terraform_config() {
 
 # Local database array of provider infrastructure
 terraform_database=(
-    "do:project,domain,iaas_provider,region,setup_root,do_token,do_droplet_size"
-    "aws:project,domain,iaas_provider,region,setup_root,access_key,secret_key,route53_zone,iam_user,aws_vm"
+    "do:project,plan,ready,domain,iaas_provider,options,region,setup_root,do_token,do_droplet_size"
+    "aws:project,plan,ready,domain,iaas_provider,options,region,setup_root,access_key,secret_key,route53_zone,iam_user,aws_vm"
 )
 
 # Terraform Vars Template
@@ -84,7 +85,7 @@ setup_terraform_config() {
             terraform_module_output_start=$(eval "echo \"$terraform_module_template_start\"")
             echo "$terraform_module_output_start" >> $teraform_file_module
 
-            echo "ready = \"no\"" >> "$teraform_file_project"; # tfvars file(s) prepend ready tags
+            #echo "ready = \"no\"" >> "$teraform_file_project"; # tfvars file(s) prepend ready tags
 
             # Extract the provider data from the entry
             IFS=',' read -r -a configs <<< "${entry#*:}"  # Split the entry into fields
@@ -114,8 +115,14 @@ setup_terraform_config() {
             sed -i "s/^domain = .*/domain = \"$(sed 's/[\.\/&]/\\&/g' <<< "$config_project_domain")\"/" "$teraform_file_project"
             sed -i "s/^iaas_provider = .*/iaas_provider = \"$config_infrastructure_provider\"/" "$teraform_file_project"
             sed -i "s/^setup_root = .*/setup_root = \"$(sed 's/[\/&]/\\&/g' <<< "$config_project_setup_root")\"/" "$teraform_file_project"
+            sed -i "s/^options = .*/options = \"$config_infrastructure_options\"/" "$teraform_file_project"
 
-            #"do:project,domain,iaas_provider,region,setup_root,do_token,do_droplet_size"
+            # update the plan ID in both tfvars and config
+            PLAN_ID=$(openssl rand -hex 3 | tr -dc '0-9' | head -c 10 | tr '[:upper:]' '[:lower:]')
+            sed -i "s/^plan = .*/plan = \"$PLAN_ID\"/" "$PROJECT_FILE_TERRAFORM"
+            sed -i "s/^  plan: .*/  plan: $PLAN_ID/" "$PROJECT_FILE_CONFIG"
+
+
 
             echo -e "Infrastructure files successfully created/re-created for provider ($config_infrastructure_provider)...\n"
 

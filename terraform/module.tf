@@ -1,8 +1,11 @@
 module "iaas_provider_module" {
   source = "../terraform-modules/do/droplet"
   project = var.project
+  plan = var.plan
+  ready = var.ready
   domain = var.domain
   iaas_provider = var.iaas_provider
+  options = var.options
   region = var.region
   setup_root = var.setup_root
   do_token = var.do_token
@@ -14,12 +17,24 @@ variable "project" {
   description = "Terraform Variable project"
 }
 
+variable "plan" {
+  description = "Terraform Variable plan"
+}
+
+variable "ready" {
+  description = "Terraform Variable ready"
+}
+
 variable "domain" {
   description = "Terraform Variable domain"
 }
 
 variable "iaas_provider" {
   description = "Terraform Variable iaas_provider"
+}
+
+variable "options" {
+  description = "Terraform Variable options"
 }
 
 variable "region" {

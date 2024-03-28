@@ -18,8 +18,6 @@ source modullo-includes/check-provider.sh # process provider details
 if [[ "$modulloCreateInfrastructure" == "yes" ]]; then
     # Create Infrastructure using Teraform
 
-    echo -e "Inside! \n";
-
     terraform -chdir=terraform/ workspace select ${project} || terraform -chdir=terraform/ workspace new ${project}
     terraform -chdir=terraform/ init
 
