@@ -85,7 +85,7 @@ resource "digitalocean_record" "dns_project" {
       instance-ip = try(digitalocean_floating_ip.droplet_ip[0].ip_address, digitalocean_droplet.modullo_droplet_instance.ipv4_address),
       }
       )
-      filename = "${var.setup_root}/projects/${var.project}/parameters"
+      filename = "${var.setup_root}/projects/${var.project}/parameters_infrastructure"
   }
 
 

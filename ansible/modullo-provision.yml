@@ -9,7 +9,8 @@
   become_user: root
   vars:
     - params_path_project: "projects/{{ project }}/{{ project }}.params"
-    - params_path_credentials: "projects/{{ project }}/parameters"
+    - params_path_infrastructure: "projects/{{ project }}/parameters_infrastructure"
+    - params_path_provisioning: "projects/{{ project }}/parameters_provisioning"
     
   tasks:
     - name: Project VM - Allow Propagation Delay
@@ -74,7 +75,7 @@
 
     - name: Copy Credentials File (from Control to Compute Machine)
       copy:
-        src: "{{ setup_root }}/{{ params_path_credentials }}"
+        src: "{{ setup_root }}/{{ params_path_infrastructure }}"
         dest: /var/www/params_path_credentials
 
     - name: Read Credentials File (from Compute Machine)
@@ -368,3 +369,366 @@
       ansible.builtin.pip:
         name:
           - bcrypt
+
+
+
+
+    - name: Copy Credentials File (from Control to Compute Machine)
+      copy:
+        src: "{{ setup_root }}/{{ params_path_infrastructure }}"
+        dest: /var/www/params_path_credentials
+
+    - name: Read Credentials File (from Compute Machine)
+      slurp:
+        src: /var/www/params_path_credentials
+      register: params_path_credentials_file_content
+      ignore_errors: true
+
+    - name: Parse key-value pairs from Credentials File
+      set_fact:
+        credential_pairs: "{{ (params_path_credentials_file_content.content | b64decode).split('\n') }}"
+      when: params_path_credentials_file_content.content is defined
+
+
+    - name: Extract Meilisearch Master Key from Credentials
+      set_fact:
+        meilisearch_master_key: "{{ credential_pairs | select('match', extract_key + ':.*') | map('regex_replace', extract_key + ':', '') | list | first }}"
+      when: extract_key in credential_pairs | join('\n')
+      vars:
+        extract_key: "meilisearch_key"
+
+    - name: Project VM - Empty Project Directory
+      file:
+        path: "{{ '/var/www/' + dir_item.dir }}"
+        state: absent
+      loop:
+        - { domain: "{{ 'hub.' + domain }}", dir: "{{ project }}" }
+        - { domain: "{{ 'core.' + domain }}", dir: "{{ 'core_' + project }}" }
+      loop_control:
+        loop_var: dir_item
+
+    - name: Project VM - Creates Project Directory
+      file:
+        path: "{{ '/var/www/' + project_item.dir }}"
+        state: directory
+        owner: "{{ instance_user | default('ubuntu') }}"
+        group: "{{ instance_user | default('ubuntu') }}"
+      loop:
+        - { domain: "{{ 'hub.' + domain }}", dir: "{{ project }}" }
+        - { domain: "{{ 'core.' + domain }}", dir: "{{ 'core_' + project }}" }
+      loop_control:
+        loop_var: project_item
+
+
+    - name: Checkout code to Project Directory
+      ansible.builtin.git:
+        repo: '{{ git_item.repo }}'
+        dest: "{{ '/var/www/' + git_item.dir }}"
+        version: "{{ git_item.branch }}"
+      loop:
+        - { repo: "https://{{ git_user }}:{{ git_pass }}@github.com/dorcas-io/hub-base.git", dir: "{{ project }}", branch: "deploy" }
+        - { repo: "https://{{ git_user }}:{{ git_pass }}@github.com/dorcas-io/core-base.git", dir: "{{ 'core_' + project }}", branch: "deploy" }
+      loop_control:
+        loop_var: git_item
+
+
+    - name: Project Compute - Creates Project ENV Files
+      template:
+        src: "{{ 'templates/dorcas-' + env_item.type + '.j2' }}"
+        dest: "{{ '/var/www/' + env_item.dir + '/.env' }}"
+      vars:
+        edition: "{{ edition }}"
+        app_name: "{{ env_partner_product_name }}"
+        app_url: "https://{{ env_item.domain }}"
+        app_url_static: "https://{{ env_item.domain }}"
+        app_url_site: "https://{{ env_item.domain }}"
+        app_timezone: "Africa/Lagos"
+        url_main: "https://hub.{{ env_item.domain }}"
+        url_core: "https://core.{{ domain }}"
+        url_hub: "https://hub.{{ domain }}"
+        url_portal: "https://portal.{{ domain }}"
+        url_market: "https://market.{{ domain }}"
+        host_main: "{{ env_item.domain }}"
+        host_hub: "hub.{{ domain }}"
+        host_core: "core.{{ domain }}"
+        host_portal: "portal.{{ domain }}"
+        host_market: "market.{{ domain }}"
+        admin_email: "{{ email }}"
+        deploy_stage: "production"
+        ssl_verify: "false"
+        partner_name: "{{ partner_name }}"
+        partner_product_name: "{{ env_partner_product_name }}"
+        partner_slug: "{{ partner_slug }}"
+        partner_logo_url: "{{ partner_logo_url }}"
+        db_main: "{{ env_item.db }}"
+        db_main_user: "{{ mysql_root_user }}"
+        db_main_pass: "{{ mysql_root_pass }}"
+        db_core: "{{ param_db_core }}"
+        db_core_user: "{{ mysql_root_user }}"
+        db_core_pass: "{{ mysql_root_pass }}"
+        db_hub: "{{ param_db_hub }}"
+        db_hub_user: "{{ mysql_root_user }}"
+        db_hub_pass: "{{ mysql_root_pass }}"
+        db_marketplace_user: "{{ mysql_root_user }}"
+        db_marketplace_pass: "{{ mysql_root_pass }}"
+        redis_pass: "{{ param_redis_pass }}"
+        mail_driver: "{{ env_mail_driver }}"
+        mail_host: "{{ env_mail_host }}"
+        mail_port: "{{ env_mail_port }}"
+        mail_user: "{{ env_mail_user }}"
+        mail_pass: "{{ env_mail_pass }}"
+        mail_from: "{{ env_mail_from }}"
+        mail_from_name: "{{ env_mail_from_name }}"
+        mail_postmark_token: "{{ env_postmark_token }}"
+        dc_id: ""
+        dc_secret: ""
+        dpc_id: ""
+        dpc_secret: ""
+        bridge_url: "{{ env_item.bridge }}"
+        settings_country: "{{ env_settings_country }}"
+        settings_currency: "{{ env_settings_currency }}"
+        settings_timezone:  "{{ env_settings_timezone }}"
+        settings_modules_list:  "{{ env_settings_modules_list }}"
+        settings_modules_readonly:  "{{ env_settings_modules_readonly }}"
+        settings_dashboard_autosetup:  "{{ env_settings_dashboard_autosetup }}"
+        settings_dashboard_documentation:  "{{ env_settings_dashboard_documentation }}"
+        settings_dashboard_videos:  "{{ env_settings_dashboard_videos }}"
+        settings_ecommerce_logistics_provider: "{{ env_settings_ecommerce_logistics_provider }}"
+        settings_ecommerce_logistics_shipping: "{{ env_settings_ecommerce_logistics_shipping }}"
+        settings_ecommerce_logistics_fulfilment: "{{ env_settings_ecommerce_logistics_fulfilment }}"
+        settings_ecommerce_logistics_fulfilment_centre: "{{ env_settings_ecommerce_logistics_fulfilment_centre }}"
+        settings_ecommerce_payment_provider: "{{ env_settings_ecommerce_payment_provider }}"
+        settings_ecommerce_payment_use_wallet: "{{ env_settings_ecommerce_payment_use_wallet }}"
+        credential_ecommerce_provider_url: "{{ env_credential_ecommerce_provider_url }}"
+        credential_ecommerce_provider_domain: "{{ env_credential_ecommerce_provider_domain }}"
+        credential_ecommerce_provider_username: "{{ env_credential_ecommerce_provider_username }}"
+        credential_ecommerce_provider_password: "{{ env_credential_ecommerce_provider_password }}"
+        credential_google_api_key: "{{ env_credential_google_api_key | default('empty') }}"
+        credential_google_analytics_property_id: "{{ env_credential_google_analytics_property_id | default('empty') }}"
+        credential_google_tag_manager_id: "{{ env_credential_google_tag_manager_id | default('empty') }}"
+        credential_paystack_key_public: "{{ env_credential_paystack_key_public | default('empty') }}"
+        credential_paystack_key_secret: "{{ env_credential_paystack_key_secret | default('empty') }}"
+        credential_flutterwave_key_public: "{{ env_credential_flutterwave_key_public | default('empty') }}"
+        credential_flutterwave_key_secret: "{{ env_credential_flutterwave_key_secret | default('empty') }}"
+        credential_flutterwave_key_encryption: "{{ env_credential_flutterwave_key_encryption | default('empty') }}"
+        credential_aws_key_id: "{{ env_credential_aws_key_id }}"
+        credential_aws_key_secret: "{{ env_credential_aws_key_secret }}"
+        credential_aws_region: "{{ env_credential_aws_region }}"
+        credential_aws_bucket: "{{ env_credential_aws_bucket }}"
+        credential_aws_path_style_endpoint: "{{ env_credential_aws_path_style_endpoint }}"
+      loop:
+        - { type: "hub", dir: "{{ project }}", domain: "hub.{{ domain }}", db: "{{ param_db_hub }}", bridge: "" }
+        - { type: "core", dir: "{{ 'core_' + project }}", domain: "{{ 'core.' + domain }}", db: "{{ param_db_core }}", bridge: "https://admin.dorcas.io/" }
+      loop_control:
+        loop_var: env_item
+
+    - name: Update Meilisearch Credentials in Core ENV
+      ansible.builtin.lineinfile:
+        path: "{{ '/var/www/core_' + project + '/.env' }}"
+        regexp: '^{{ key_item.title }}=' 
+        line: "{{ key_item.title + '=' + key_item.value }}"
+        backrefs: yes
+      loop:
+        - { title: "MEILISEARCH_HOST",  value: "http://127.0.0.1:7700" }
+        - { title: "MEILISEARCH_KEY",  value: "{{ meilisearch_master_key }}" }
+      loop_control:
+        loop_var: key_item
+      ignore_errors: true
+
+
+    - name: Optimize Installation
+      shell: |
+        sudo chown -R {{ instance_user | default('ubuntu') }} /var/www/{{ shell_item.dir }}
+        cd /var/www/{{ shell_item.dir }}
+        rm /var/www/{{ shell_item.dir }}/composer.lock
+        composer {{ shell_item.composer }}
+        composer require wildbit/swiftmailer-postmark
+        composer require wildbit/postmark-php
+        composer require fruitcake/laravel-cors
+        sudo chown -R {{ instance_user | default('ubuntu') }}:www-data /var/www/{{ shell_item.dir }}/storage/
+        sudo chmod -R 775 /var/www/{{ shell_item.dir }}/storage/
+        sudo mkdir -p /var/www/{{ shell_item.dir }}/bootstrap/cache
+        sudo chown -R {{ instance_user | default('ubuntu') }}:www-data /var/www/{{ shell_item.dir }}/bootstrap/cache
+        sudo chmod -R 775 /var/www/{{ shell_item.dir }}/bootstrap/cache
+        sudo mkdir -p /var/www/{{ shell_item.dir }}/public/uploads
+        sudo chown -R {{ instance_user | default('ubuntu') }}:www-data /var/www/{{ shell_item.dir }}/public/uploads
+        sudo chmod -R 775 /var/www/{{ shell_item.dir }}/public/uploads
+        sudo chmod -R u=rwx,g=rwx,o=rw /var/www/{{ shell_item.dir }}/storage/logs
+        touch /var/www/{{ shell_item.dir }}/storage/logs/{{ shell_item.log_file }} && > /var/www/{{ shell_item.dir }}/storage/logs/{{ shell_item.log_file }}
+        sudo chown {{ instance_user | default('ubuntu') }}:www-data storage/logs/{{ shell_item.log_file }}
+        sudo chmod u=rwx,g=rw,o=rw storage/logs/{{ shell_item.log_file }}
+        sudo chmod u=rwx,g=rx,o=x artisan
+        find "/var/www/{{ shell_item.dir }}/" -type f -name '*.php' -exec chmod 644 {} \;
+        {{ shell_item.cmd }}
+        sudo chown -R {{ instance_user | default('ubuntu') }}:www-data /var/www/{{ shell_item.dir }}/composer.lock
+      register: optimize_output
+      loop:
+        - { dir: "{{ project }}", composer: "update --with-all-dependencies", log_file: "laravel.log", cmd: "sudo ./artisan optimize:clear" }
+        - { dir: "{{ 'core_' + project }}", composer: "install", log_file: "lumen.log", cmd: "sudo ./artisan passport:keys && sudo chown -R {{ instance_user | default('ubuntu') }}:{{ instance_user | default('ubuntu') }} storage/*.key && sudo ./artisan dorcas:setup && sudo ./artisan passport:install && sudo ./artisan cache:clear &&  sudo ./artisan dorcas:setup-partner " }
+      loop_control:
+        loop_var: shell_item
+      async: 500
+      poll: 30
+
+    - name: Print the Optimize Vars
+      ansible.builtin.debug:
+        msg: Result is {{ optimize_output.results[1].stdout_lines }}
+
+    - name: Select Optimization Data
+      ansible.builtin.set_fact:
+        optimize_output_username_password: "{{ optimize_output.results[1].stdout_lines | select('search', 'Username:') }}"
+        optimize_output_oauth: "{{ optimize_output.results[1].stdout_lines | select('search', 'ID:') }}"
+        optimize_output_client_id: "{{ optimize_output.results[1].stdout_lines | select('search', 'Client ID:') }}"
+        optimize_output_client_secret: "{{ optimize_output.results[1].stdout_lines | select('search', 'Client secret:') }}"
+
+    - name: Determine If First Time Setup
+      ansible.builtin.set_fact:
+        first_time_setup: "{{ 'true' if (optimize_output_username_password is defined) and optimize_output_username_password|length > 0 else 'false' }}"
+
+    - name: Check First Time Setup
+      ansible.builtin.debug:
+        msg: First Time Setup is {{ first_time_setup }}
+
+
+    - name: Extract Optimization Data
+      ansible.builtin.set_fact:
+        optimize_list_username_password: "{{ optimize_output_username_password[0] | regex_replace('\\x1b[^m]*m', '') | split('password:') }}"
+        optimize_list_oauth: "{{ optimize_output_oauth[0] | regex_replace('\\x1b[^m]*m', '') | split('Secret:') }}"
+        optimize_list_client_id: "{{ optimize_output_client_id[0] | regex_replace('\\x1b[^m]*m', '') | split('Client ID:') }}"
+        optimize_list_client_secret: "{{ optimize_output_client_secret[0] | regex_replace('\\x1b[^m]*m', '') | split('Client secret:') }}"
+      when: first_time_setup
+
+
+    - name: Add APP Key to Hub & Core
+      ansible.builtin.lineinfile:
+        path: "{{ '/var/www/' + key_item.dir + '/.env' }}"
+        regexp: '^APP_KEY='
+        line: "{{ 'APP_KEY=base64:' + lookup('community.general.random_string', length=32, base64=True, special=false) }}"
+        backrefs: yes
+      loop:
+        - { dir: "{{ project }}" }
+        - { dir: "{{ 'core_' + project }}" }
+      loop_control:
+        loop_var: key_item
+      ignore_errors: true
+
+    - name: Delete shared data file if it exists
+      ansible.builtin.file:
+        path: "{{ setup_root }}/{{ params_path_shareddata }}"
+        state: absent
+      delegate_to: localhost
+      become: false
+
+    - name: Save Dorcas Client credentials for use by other playbooks
+      ansible.builtin.copy:
+        content: |
+          ---
+          optimize_list_username_password: "{{ optimize_list_username_password }}"
+          optimize_list_oauth: "{{ optimize_list_oauth | trim }}"
+          optimize_list_client_id: "{{ optimize_list_client_id | trim }}"
+          optimize_list_client_secret: "{{ optimize_list_client_secret | trim }}"
+          dorcas_client_secret: "{{ optimize_list_oauth[1] | trim }}"
+          dorcas_personal_client_id: "{{ optimize_list_client_id[1] | trim }}"
+          dorcas_personal_client_secret: "{{ optimize_list_client_secret[1] | trim }}"
+          client_email: "{{ email }}"
+          client_password: "{{ optimize_list_username_password[1] | trim }}"
+        dest: "{{ setup_root }}/{{ params_path_shareddata }}"
+      delegate_to: localhost
+      become: false
+      when: first_time_setup
+
+    - name: Update Client ID & Secret in Hub
+      ansible.builtin.lineinfile:
+        path: "{{ '/var/www/' + project + '/.env' }}"
+        regexp: '^{{ key_item.title }}=' 
+        line: "{{ key_item.title + '=' + key_item.value }}"
+        backrefs: yes
+      loop:
+        - { type: 'id', title: "DORCAS_CLIENT_ID",  value: "1" }
+        - { type: 'secret', title: "DORCAS_CLIENT_SECRET",  value: "{{ optimize_list_oauth[1] | trim }}" }
+        - { type: 'pc_secret', title: "DORCAS_PERSONAL_CLIENT_ID",  value: "{{ optimize_list_client_id[1] | trim }}" }
+        - { type: 'pc_secret', title: "DORCAS_PERSONAL_CLIENT_SECRET",  value: "{{ optimize_list_client_secret[1] | trim }}" }
+      loop_control:
+        loop_var: key_item
+      ignore_errors: true
+      when: first_time_setup
+
+
+    - name: Project Compute - Install & Configure Supervisor for Queue
+      include_role:
+        name: geerlingguy.supervisor
+      vars:
+        # supervisor_user: root
+        # supervisor_password: 'my_secret_password'
+        # supervisor_unix_http_server_password_protect: true
+        # supervisor_inet_http_server_password_protect: true
+        # supervisor_unix_http_server_enable: true
+        # supervisor_unix_http_server_socket_path: /var/run/supervisor.sock
+        supervisor_programs:
+          - name: 'dorcas-worker'
+            command: sudo php /var/www/core_{{ project }}/artisan queue:work redis --sleep=3 --tries=3
+            state: present
+            configuration: |
+              autostart=true
+              autorestart=true
+              startretries=3
+              startsecs=1
+              redirect_stderr=true
+              stdout_logfile=/var/www/core_{{ project }}/storage/logs/dorcas-worker.log
+              user=www-data
+              killasgroup=true
+              stopasgroup=true
+      when: first_time_setup
+
+    - name: Display Installation Credentials
+      ansible.builtin.debug:
+        msg: Database root password is {{ mysql_root_pass }}.
+
+
+    - name: Test secure connection to Core Installation.
+      uri:
+        url: "{{ 'https://core.' + domain }}"
+        status_code: 200,401
+      delegate_to: localhost
+      become: false
+
+    - name: Test secure connection to Hub Installation.
+      uri:
+        url: "{{ 'https://hub.' + domain }}"
+        status_code: 200,201
+      delegate_to: localhost
+      become: false
+
+    - name: Define Admin Login Details
+      set_fact:
+        login_pair: "admin_username:{{ email }}\nadmin_passsword:{{ optimize_list_username_password[1] | trim }}"
+      when: first_time_setup
+
+    - name: Merge Admin Login Details into Credentials File
+      set_fact:
+        credential_pairs: "{{ credential_pairs | default([]) + login_pair.split('\n') }}"
+      when: first_time_setup
+
+    - name: Create updated Credentials
+      set_fact:
+        params_path_credentials_updated_content: "{{ credential_pairs | join('\n') }}"
+      when: first_time_setup
+
+    - name: Write updated Credentials to Compute Credentials File
+      copy:
+        content: "{{ params_path_credentials_updated_content }}"
+        dest: "/var/www/params_path_credentials"
+      when: first_time_setup
+
+    - name: Download updated Credentials to Control Credentials File
+      fetch:
+        src: "/var/www/params_path_credentials"
+        dest: "{{ setup_root }}/{{ params_path_infrastructure }}"
+        flat: yes
+      when: first_time_setup
+
+    - name: Completion Success Results
+      ansible.builtin.debug:
+        msg: Dorcas Setup is successful. Login to https://hub.{{ domain }}/login WITH login {{ email }} and password {{ optimize_list_username_password[1] | trim }}
+      ignore_errors: true
+      when: first_time_setup

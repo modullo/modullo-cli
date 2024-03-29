@@ -79,10 +79,13 @@ setup_terraform_config() {
             local teraform_file_project="$PROJECT_FILE_TERRAFORM"
             local teraform_file_module="terraform/module.tf"
 
+            local parameters_file_provisioning="projects/${project}/parameters_provisioning"
+
             # empty the files file
             > $ansible_file_project
             > $teraform_file_project
             > $teraform_file_module
+            touch $parameters_file_provisioning > $parameters_file_provisioning # create and/or empty
 
             terraform_module_output_start=$(eval "echo \"$terraform_module_template_start\"")
             echo "$terraform_module_output_start" >> $teraform_file_module
@@ -136,6 +139,14 @@ setup_terraform_config() {
             sed -i "s/^plan = .*/plan = \"$PLAN_ID\"/" "$PROJECT_FILE_TERRAFORM"
             sed -i "s/^  plan: .*/  plan: $PLAN_ID/" "$PROJECT_FILE_CONFIG"
 
+
+            # prepare parameters_provisioning file so it can be used during provisioning like parameters_infrastructure
+            echo "provisioning_type:$config_provisioning_type" >> "$parameters_file_provisioning";
+            echo "provisioning_software_os:$config_provisioning_software_os" >> "$parameters_file_provisioning";
+            echo "provisioning_software_system:$config_provisioning_software_system" >> "$parameters_file_provisioning";
+            echo "provisioning_software_framework:$config_provisioning_software_framework" >> "$parameters_file_provisioning";
+            echo "provisioning_options:$config_provisioning_options" >> "$parameters_file_provisioning";
+            echo "provisioning_database:$config_provisioning_database" >> "$parameters_file_provisioning";
 
 
             echo -e "Infrastructure files successfully created/re-created for provider ($config_infrastructure_provider)...\n"
