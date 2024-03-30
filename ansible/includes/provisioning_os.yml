@@ -2,24 +2,33 @@
 
 - name: Beginning OS Level Software Provisioning
   pause:
-    prompt: "Do you wish to proceed? This pause will last 10 seconds. Press Enter to continue or Ctrl+C to skip this provisioning."
+    prompt: "Do you wish to proceed? Press Enter to continue or Ctrl+C to re-evaluate."
     seconds: 10
 
 
-- name: Install Necessary System Software
+- name: Debug Variable
+  ansible.builtin.debug:
+    msg: Variable is {{ provisioning_software_os }}
+
+
+- name: Gather and merge OS Software lists
+  set_fact:
+    os_software_list: "{{ provisioning_software_os.split(',') | union(software_system) }}"
+
+- name: Install OS Software lists
   apt:
-    name: "{{ software_system }}"
+    name: "{{ os_software_list }}"
     update_cache: yes
   become: yes
   #ignore_errors: True
   async: 600
   poll: 30
 
+
 - name: Install Certbot via Snap
   snap:
     name: certbot
     classic: yes
-
 
 
 - name: Install python packages

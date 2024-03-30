@@ -2,6 +2,6 @@
 
 - name: Beginning Framework Level Software Provisioning...
   pause:
-    prompt: "Do you wish to proceed? This pause will last 10 seconds. Press Enter to continue or Ctrl+C to skip this provisioning."
+    prompt: "Do you wish to proceed? Press Enter to continue or Ctrl+C to re-evaluate."
     seconds: 10
 

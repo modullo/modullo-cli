@@ -2,7 +2,7 @@
 
 - name: Beginning System Level Software Provisioning...
   pause:
-    prompt: "Do you wish to proceed? This pause will last 10 seconds. Press Enter to continue or Ctrl+C to skip this provisioning."
+    prompt: "Do you wish to proceed? Press Enter to continue or Ctrl+C to re-evaluate."
     seconds: 10
 
 
@@ -18,70 +18,92 @@
     - { dir: 'env-files', permission: 'u=rwx,g=rx,o=rx' }
 
 
+- name: Define System Project Path
+  set_fact:
+    system_project_directory: "/var/www/{{ project }}"
 
+- name: Update System Project Path
+  set_fact:
+    system_project_directory: "/var/www/{{ project }}/public"
+  when: provisioning_type == "app" and "'php' in provisioning_software_system"
+
+
+
+#------------------------------------------------------
+# Create Directories
+#------------------------------------------------------
 - name: Project VM - Creates Project Directory
   file:
-    path: "{{ '/var/www/' + project_item.dir + '/public' }}"
+    path: "{{ system_project_directory }}"
     state: directory
     owner: "{{ instance_user | default('ubuntu') }}"
     group: "{{ instance_user | default('ubuntu') }}"
-  loop:
-    - { domain: "{{ domain }}", dir: "{{ project }}" }
-    - { domain: "{{ 'core.' + domain }}", dir: "{{ 'core_' + project }}" }
-  loop_control:
-    loop_var: project_item
+  when: provisioning_type == "app"
 
-- name: Project VM - Creates Project Index (with Content)
+- name: Project VM - Creates Project Directory Index (PHP Apps)
   template:
     src: "templates/php.j2"
-    dest: "{{ '/var/www/' + folder_item.dir + '/public/index.php' }}"
+    dest: "{{ system_project_directory + '/index.php' }}"
   vars:
     template_domain: "{{ folder_item.domain }}"
     template_port: ""
-  loop:
-    - { domain: "{{ domain }}", dir: "{{ project }}" }
-  loop_control:
-    loop_var: folder_item
+  when: provisioning_type == "app" and "'php' in provisioning_software_system"
 
 
-
-  
+#------------------------------------------------------
+# Extract IAAS Keys and/or Secrets from Credentials
+#------------------------------------------------------
 - name: Extract AWS_ACCESS_KEY_ID from Credentials
   set_fact:
-    aws_access_key_id: "{{ credential_pairs | select('match', extract_key_a + ':.*') | map('regex_replace', extract_key_a + ':', '') | list | first }}"
-  when: extract_key_a in credential_pairs | join('\n')
-  vars:
-    extract_key_a: "aws_access_key_id"
-  when: iaas_provider == "aws"
+    aws_access_key_id: "{{ infrastructure_aws_access_key_id }}"
+  when: infrastructure_iaas_provider == "aws"
 
 - name: Extract AWS_ACCESS_KEY_SECRET from Credentials
   set_fact:
-    aws_access_key_secret: "{{ credential_pairs | select('match', extract_key_s + ':.*') | map('regex_replace', extract_key_s + ':', '') | list | first }}"
-  when: extract_key_s in credential_pairs | join('\n')
-  vars:
-    extract_key_s: "aws_access_key_secret"
-  when: iaas_provider == "aws"
+    aws_access_key_secret: "{{ infrastructure_aws_access_key_secret }}"
+  when: infrastructure_iaas_provider == "aws"
 
 - name: Extract AWS_ACCESS_REGION from Credentials
   set_fact:
-    aws_region: "{{ credential_pairs | select('match', extract_key_r + ':.*') | map('regex_replace', extract_key_r + ':', '') | list | first }}"
-  when: extract_key_r in credential_pairs | join('\n')
-  vars:
-    extract_key_r: "region"
-  when: iaas_provider == "aws"
+    aws_region: "{{ infrastructure_aws_region }}"
+  when: infrastructure_iaas_provider == "aws"
 
 - name: Extract DIGITAL OCEAN TOKEN from Credentials
   set_fact:
-    do_token: "{{ credential_pairs | select('match', extract_key_t + ':.*') | map('regex_replace', extract_key_t + ':', '') | list | first }}"
-  when: extract_key_t in credential_pairs | join('\n')
+    do_token: "{{ infrastructure_do_token }}"
+  when: infrastructure_iaas_provider == "do"
+
+
+#------------------------------------------------------
+# Install System Software for PHP Apps
+#------------------------------------------------------
+
+- name: Project Compute - Install PHP Versions
+  include_role:
+    name: geerlingguy.php-versions
   vars:
-    extract_key_t: "do_token"
-  when: iaas_provider == "do"
+    php_version: "{{ php_version_number }}"
+  when: provisioning_type == "app" and "'php' in provisioning_software_system"
 
+- name: Project Compute - Install PHP
+  include_role:
+    name: geerlingguy.php
+  vars:
+    php_packages: "{{ php_packages_list }}"
+    php_enable_php_fpm: true
+    php_fpm_state: started
+    php_fpm_enabled_on_boot: true
+    php_fpm_handler_state: restarted
+    php_webserver_daemon: "nginx"
+    php_default_version_debian: "{{ php_version_number }}"
+    php_version: "{{ php_version_number }}"
+    php_sendmail_path: "{{ mail_mailhog_path + '/mhsendmail' }}"
+  when: provisioning_type == "app" and "'php' in provisioning_software_system"
 
-
-
-
+- name: Project Compute - Install Composer
+  include_role:
+    name: geerlingguy.composer
+  when: provisioning_type == "app" and "'php' in provisioning_software_system"
 
 - name: Project Compute - Install Nginx Web Server (PHP)
   include_role:
@@ -90,10 +112,8 @@
     nginx_vhosts:
       - listen: "80"
         server_name: "{{ vhost_item.server_name }}"
-        #server_name_redirect: "www.{{ domain }}"
-        root: "{{ '/var/www/' + vhost_item.dir + '/public' }}"
+        root: "{{ system_project_directory }}"
         index: "index.php index.html index.htm"
-#            error_page: ""
         access_log: "/var/log/nginx/access_{{ vhost_item.domain }}.log"
         error_log: "/var/log/nginx/error_{{ vhost_item.domain }}.log"
         state: "present"
@@ -132,10 +152,13 @@
     - { domain: "{{ domain }}", dir: "{{ project }}", server_name: "{{ domain }} {{  '*.' + domain }}" }
   loop_control:
     loop_var: vhost_item
+  when: provisioning_type == "app" and "'php' in provisioning_software_system"
 
 
-
-- name: Project Compute - Install Certbot
+#------------------------------------------------------
+# Install SSL System Software
+#------------------------------------------------------
+- name: Install SSL
   include_role:
     name: geerlingguy.certbot
   vars:
@@ -148,47 +171,47 @@
     certbot_create_method: standalone
     certbot_certs:
       - email: "dev@hostville.website"
-        webroot: "{{ '/var/www/' + project + '/public' }}"
+        webroot: "{{ system_project_directory }}"
         domains:
           - "{{ domain }}"
     certbot_create_standalone_stop_services:
       - nginx
-  when: edition == "business"
+  when: provisioning_type == "app"
 
-- name: Install Wildcard Certificate (for Enterprise Edition) with AWS Route53 Plugin
-  shell: |
-    sudo snap set certbot trust-plugin-with-root=ok
-    sudo snap install certbot-dns-route53
-    sudo AWS_ACCESS_KEY_ID="{{ aws_access_key_id }}" AWS_SECRET_ACCESS_KEY="{{ aws_access_key_secret }}" AWS_DEFAULT_REGION="{{ aws_region }}" certbot certonly --dns-route53 -d {{ domain }} -d *.{{ domain }} -d *.store.{{ domain }} --agree-tos -m dev@hostville.website
-    sudo AWS_ACCESS_KEY_ID="{{ aws_access_key_id }}" AWS_SECRET_ACCESS_KEY="{{ aws_access_key_secret }}" AWS_DEFAULT_REGION="{{ aws_region }}" certbot certonly --dns-route53 -d core.{{ domain }} --agree-tos -m dev@hostville.website
-  register: wildcard_output
-  async: 300
-  poll: 30
-  when: edition == "enterprise" and iaas_provider == "aws"
 
-- name: Install Wildcard Certificate (for Enterprise Edition) with Digital Ocean  (Prequisites)
-  shell: |
-    sudo snap set certbot trust-plugin-with-root=ok
-    sudo snap install certbot-dns-digitalocean
-    echo "dns_digitalocean_token = {{ do_token }}" | sudo tee /var/www/digitalocean.ini
-    sudo chmod 600 /var/www/digitalocean.ini
-    #sudo certbot certonly --dns-digitalocean --dns-digitalocean-credentials /var/www/digitalocean.ini -d {{ domain }} -d *.{{ domain }} -d *.store.{{ domain }} --agree-tos -m dev@hostville.website
-    #sudo certbot certonly --dns-digitalocean --dns-digitalocean-credentials /var/www/digitalocean.ini -d core.{{ domain }} --agree-tos -m dev@hostville.website
-  register: wildcard_output
-  async: 300
-  poll: 30
-  when: edition == "enterprise" and iaas_provider == "do"
+# - name: Install Wildcard SSL (AWS Route53 Plugin)
+#   shell: |
+#     sudo snap set certbot trust-plugin-with-root=ok
+#     sudo snap install certbot-dns-route53
+#     sudo AWS_ACCESS_KEY_ID="{{ aws_access_key_id }}" AWS_SECRET_ACCESS_KEY="{{ aws_access_key_secret }}" AWS_DEFAULT_REGION="{{ aws_region }}" certbot certonly --dns-route53 -d {{ domain }} -d *.{{ domain }} -d *.store.{{ domain }} --agree-tos -m dev@hostville.website
+#     sudo AWS_ACCESS_KEY_ID="{{ aws_access_key_id }}" AWS_SECRET_ACCESS_KEY="{{ aws_access_key_secret }}" AWS_DEFAULT_REGION="{{ aws_region }}" certbot certonly --dns-route53 -d core.{{ domain }} --agree-tos -m dev@hostville.website
+#   register: wildcard_output
+#   async: 300
+#   poll: 30
+#   when: infrastructure_iaas_provider == "aws"
 
-- name: Install Wildcard Certificate (for Enterprise Edition) with Digital Ocean Plugin (Hub, Store & Subdomains)
-  expect:
-    command: sudo certbot certonly --dns-digitalocean --dns-digitalocean-credentials /var/www/digitalocean.ini -d {{ domain }} -d *.{{ domain }} --agree-tos -m dev@hostville.website
-    responses:
-        "You have an existing certificate ": "1"
-        "share your email address with the Electronic Frontier Foundation,": "N"
-  become: true
-  ignore_errors: true
-  async: 300
-  poll: 30
+# - name: Install Wildcard SSL (Digital Ocean)
+#   shell: |
+#     sudo snap set certbot trust-plugin-with-root=ok
+#     sudo snap install certbot-dns-digitalocean
+#     echo "dns_digitalocean_token = {{ do_token }}" | sudo tee /var/www/digitalocean.ini
+#     sudo chmod 600 /var/www/digitalocean.ini
+#   register: wildcard_output
+#   async: 300
+#   poll: 30
+#   when: iaas_provider == "do"
+
+# - name: Install Wildcard SSL (Digital Ocean Plugin)
+#   expect:
+#     command: sudo certbot certonly --dns-digitalocean --dns-digitalocean-credentials /var/www/digitalocean.ini -d {{ domain }} -d *.{{ domain }} --agree-tos -m dev@hostville.website
+#     responses:
+#         "You have an existing certificate ": "1"
+#         "share your email address with the Electronic Frontier Foundation,": "N"
+#   become: true
+#   ignore_errors: true
+#   async: 300
+#   poll: 30
+#   when: iaas_provider == "do"
 
 
 - name: Project Compute - Install Nginx Web Server (PHP) (Secure)
@@ -198,10 +221,8 @@
     nginx_vhosts:
       - listen: "443 ssl http2"
         server_name: "{{ vhost_ssl_item.server_name }}"
-        #server_name_redirect: "www.{{ domain }}"
-        root: "{{ '/var/www/' + vhost_ssl_item.dir + '/public' }}"
+        root: "{{ system_project_directory }}"
         index: "index.php index.html index.htm"
-#            error_page: ""
         access_log: "/var/log/nginx/access_{{ vhost_ssl_item.domain }}_ssl.log"
         error_log: "/var/log/nginx/error_{{ vhost_ssl_item.domain }}_ssl.log"
         state: "present"
@@ -245,32 +266,11 @@
     - { domain: "{{ domain }}", dir: "{{ project }}", server_name: "{{ domain }} {{  '*.' + domain }}" }
   loop_control:
     loop_var: vhost_ssl_item
+  when: provisioning_type == "app" and "'php' in provisioning_software_system"
 
-
-- name: Project Compute - Install PHP Versions
-  include_role:
-    name: geerlingguy.php-versions
-  vars:
-    php_version: "{{ php_version_number }}"
-
-
-- name: Project Compute - Install PHP
-  include_role:
-    name: geerlingguy.php
-  vars:
-    php_packages: "{{ php_packages_list }}"
-    php_enable_php_fpm: true
-    php_fpm_state: started
-    php_fpm_enabled_on_boot: true
-    php_fpm_handler_state: restarted
-    php_webserver_daemon: "nginx"
-    php_default_version_debian: "{{ php_version_number }}"
-    php_version: "{{ php_version_number }}"
-    php_sendmail_path: "{{ mail_mailhog_path + '/mhsendmail' }}"
-
-- name: Project Compute - Install Composer
-  include_role:
-    name: geerlingguy.composer
+#------------------------------------------------------
+# Install System Software for Databases
+#------------------------------------------------------
 
 - name: Project Compute - Install MySQL
   include_role:
@@ -278,7 +278,7 @@
     apply:
       become: yes
   vars:
-    mysql_root_username: "{{ mysql_root_user }}"
+    mysql_root_username: "root"
     mysql_root_password: "{{ mysql_root_pass }}"
 
 
