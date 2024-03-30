@@ -50,15 +50,16 @@ resource "digitalocean_floating_ip_assignment" "droplet_ip_assignment" {
 
 resource "digitalocean_domain" "modullo_domain" {
   name = "${var.domain}"
+  ip_address = try(digitalocean_floating_ip.droplet_ip[0].ip_address, digitalocean_droplet.modullo_droplet_instance.ipv4_address)
 }
 
-resource "digitalocean_record" "dns_project" {
-  domain = digitalocean_domain.modullo_domain.name
-  type   = "A"
-  name   = "main"
-  value  = try(digitalocean_floating_ip.droplet_ip[0].ip_address, digitalocean_droplet.modullo_droplet_instance.ipv4_address)
-  ttl    = 300
-}
+#resource "digitalocean_record" "dns_project" {
+#  domain = digitalocean_domain.modullo_domain.name
+#  type   = "A"
+#  name   = "main"
+#  value  = try(digitalocean_floating_ip.droplet_ip[0].ip_address, digitalocean_droplet.modullo_droplet_instance.ipv4_address)
+#  ttl    = 300
+#}
 
 # Update Ansible Inventory File
   resource "local_file" "ansible-inventory" {

@@ -2,6 +2,6 @@
 
 - name: Beginning Framework Level Software Provisioning...
   pause:
-    prompt: "Do you wish to proceed? Press Enter to continue or Ctrl+C to re-evaluate."
+    prompt: "Do you wish to proceed? Press Enter to continue or Ctrl+C to re-evaluate"
     seconds: 10
 

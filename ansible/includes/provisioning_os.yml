@@ -2,13 +2,8 @@
 
 - name: Beginning OS Level Software Provisioning
   pause:
-    prompt: "Do you wish to proceed? Press Enter to continue or Ctrl+C to re-evaluate."
+    prompt: "Do you wish to proceed? Press Enter to continue or Ctrl+C to re-evaluate"
     seconds: 10
-
-
-- name: Debug Variable
-  ansible.builtin.debug:
-    msg: Variable is {{ provisioning_software_os }}
 
 
 - name: Gather and merge OS Software lists

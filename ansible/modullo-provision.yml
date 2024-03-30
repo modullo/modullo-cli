@@ -29,19 +29,19 @@
 
     - name: Copy Infrastructure Credentials File (from Control to Compute Machine)
       copy:
-        src: "{{ setup_root }}/{{ parameters_infrastructure }}"
-        dest: ~/parameters_infrastructure
+        src: "{{ setup_root }}/{{ params_path_infrastructure }}"
+        dest: ~/params_infrastructure
 
     - name: Read Infrastructure Credentials File (from Compute Machine)
       slurp:
-        src: ~/parameters_infrastructure
+        src: ~/params_infrastructure
       register: file_content_params_infrastructure
       ignore_errors: true
 
-    - name: Set variables from Provisioning Credentials File
+    - name: Set variables from Infrastructure Credentials File
       set_fact:
         "{{ item.split(':')[0] }}": "{{ item.split(':')[1] }}"
-      with_items: "{{ file_content_params_provisioning.content | b64decode | split('\n') }}"
+      with_items: "{{ file_content_params_infrastructure.content | b64decode | split('\n') }}"
       when: "':' in item"
 
 
@@ -52,11 +52,11 @@
     - name: Copy Provisioning Credentials File (from Control to Compute Machine)
       copy:
         src: "{{ setup_root }}/{{ params_path_provisioning }}"
-        dest: ~/params_path_provisioning
+        dest: ~/params_provisioning
 
     - name: Read Provisioning Credentials File (from Compute Machine)
       slurp:
-        src: ~/params_path_provisioning
+        src: ~/params_provisioning
       register: file_content_params_provisioning
       ignore_errors: true
 
@@ -66,9 +66,10 @@
       with_items: "{{ file_content_params_provisioning.content | b64decode | split('\n') }}"
       when: "':' in item"
 
+
     - name: Print the Infrastructure Provider
       ansible.builtin.debug:
-        msg: Infrastructure Provider is {{ infrastructure iaas_provider }}
+        msg: Infrastructure Provider is {{ infrastructure_iaas_provider }}
 
 
     #------------------------------------------------------
