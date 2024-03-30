@@ -50,12 +50,12 @@ else
 fi
 
 
-# Run final check if terraform file file is ready to go
+# Run final check if terraform file is ready to go
 if grep -q "^ready = \"yes\"" "$PROJECT_FILE_TERRAFORM" && grep -q "^plan = \"$config_plan_id\"" "$PROJECT_FILE_TERRAFORM"; then
     modulloCreateInfrastructure="yes"
 fi
 
 # Run final check if ansible file file is ready to go
-if grep -q "^ready:yes" "$PROJECT_FILE_PROVISIONING" && grep -q "^plan:$config_plan_id" "$PROJECT_FILE_PROVISIONING"; then
+if grep -q "^provisioning_ready:yes" "$PROJECT_FILE_PROVISIONING" && grep -q "^provisioning_plan:$config_plan_id" "$PROJECT_FILE_PROVISIONING"; then
     modulloCreateProvisioning="yes"
 fi

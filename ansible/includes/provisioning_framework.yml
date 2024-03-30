@@ -1,10 +1,7 @@
 ---
-- name: Beginning Framework Level Software Provisioning
-  hosts: localhost
-  gather_facts: no
-  tasks:
-    - name: Beginning Framework Level Software Provisioning...
-      pause:
-        prompt: "Do you wish to proceed? This pause will last 10 seconds. Press Enter to continue or Ctrl+C to skip this provisioning."
-        seconds: 10
+
+- name: Beginning Framework Level Software Provisioning...
+  pause:
+    prompt: "Do you wish to proceed? This pause will last 10 seconds. Press Enter to continue or Ctrl+C to skip this provisioning."
+    seconds: 10
 

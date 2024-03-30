@@ -142,8 +142,8 @@ setup_terraform_config() {
 
 
             # prepare parameters_provisioning file so it can be used during provisioning like parameters_infrastructure
-            echo "ready:yes" >> "$parameters_file_provisioning";
-            echo "plan:$PLAN_ID" >> "$parameters_file_provisioning";
+            echo "provisioning_ready:yes" >> "$parameters_file_provisioning";
+            echo "provisioning_plan:$PLAN_ID" >> "$parameters_file_provisioning";
             echo "provisioning_type:$config_provisioning_type" >> "$parameters_file_provisioning";
             echo "provisioning_software_os:$config_provisioning_software_os" >> "$parameters_file_provisioning";
             echo "provisioning_software_system:$config_provisioning_software_system" >> "$parameters_file_provisioning";
