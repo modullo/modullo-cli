@@ -12,6 +12,7 @@ PROJECT_FILE_CREDENTIALS="projects/${project}/${project}.credentials"
 PROJECT_FILE_TERRAFORM="projects/${project}/${project}.tfvars"
 PROJECT_FILE_ANSIBLE="ansible/vars/${project}.yml"
 PROJECT_FILE_BACKUP="projects/${project}/${project}.backup"
+PROJECT_FILE_PROVISIONING="projects/${project}/parameters_provisioning"
 
 
 

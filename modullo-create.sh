@@ -32,8 +32,6 @@ else
 fi
 
 
-exit;
-
 
 # Get Required Libraries for provisioning
 ansible-galaxy install -r ./ansible/requirements.yml
@@ -42,7 +40,7 @@ ansible-galaxy install -r ./ansible/requirements.yml
 if [[ "$modulloCreateProvisioning" == "yes" ]]; then
     # Provision Infrastructure using Ansible
 
-    ansible-playbook -i projects/${project}/ansible_inventory ./ansible/modullo-provision.yml --ssh-common-args="-o IdentitiesOnly=yes -o StrictHostKeyChecking=no" --extra-vars "@${project}.yml"
+    ansible-playbook -i projects/${project}/ansible_inventory ./ansible/modullo-provision.yml --ssh-common-args="-o IdentitiesOnly=yes -o StrictHostKeyChecking=no" --extra-vars "@./ansible/vars/${project}.yml"
 
 else
 

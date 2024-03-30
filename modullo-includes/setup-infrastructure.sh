@@ -134,13 +134,16 @@ setup_terraform_config() {
             sed -i "s/^setup_root: .*/setup_root: \"$(sed 's/[\/&]/\\&/g' <<< "$config_project_setup_root")\"/" "$ansible_file_project"
             sed -i "s/^options: .*/options: \"$config_infrastructure_options\"/" "$ansible_file_project"
 
-            # update the plan ID in both tfvars and config
+            # update the plan ID in both tfvars, config and yml
             PLAN_ID=$(openssl rand -hex 3 | tr -dc '0-9' | head -c 10 | tr '[:upper:]' '[:lower:]')
             sed -i "s/^plan = .*/plan = \"$PLAN_ID\"/" "$PROJECT_FILE_TERRAFORM"
             sed -i "s/^  plan: .*/  plan: $PLAN_ID/" "$PROJECT_FILE_CONFIG"
+            sed -i "s/^plan: .*/plan: \"$PLAN_ID\"/" "$ansible_file_project"
 
 
             # prepare parameters_provisioning file so it can be used during provisioning like parameters_infrastructure
+            echo "ready:yes" >> "$parameters_file_provisioning";
+            echo "plan:$PLAN_ID" >> "$parameters_file_provisioning";
             echo "provisioning_type:$config_provisioning_type" >> "$parameters_file_provisioning";
             echo "provisioning_software_os:$config_provisioning_software_os" >> "$parameters_file_provisioning";
             echo "provisioning_software_system:$config_provisioning_software_system" >> "$parameters_file_provisioning";

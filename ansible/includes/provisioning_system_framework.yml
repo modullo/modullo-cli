@@ -1,0 +1,7 @@
+---
+
+- name: Provisioning FRAMEWORK Type System Software
+  ansible.builtin.debug:
+    msg: System Provisioning Type is {{ iaas_provider }}
+
+

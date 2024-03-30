@@ -1,0 +1,65 @@
+---
+
+- name: Provisioning APP Type System Software
+  ansible.builtin.debug:
+    msg: Infrastructure Provider is {{ iaas_provider }}
+
+
+
+
+- name: Project VM - Empty Project Directory
+  file:
+    path: "{{ '/var/www/' + dir_item.dir }}"
+    state: absent
+  loop:
+    - { domain: "{{ 'hub.' + domain }}", dir: "{{ project }}" }
+    - { domain: "{{ 'core.' + domain }}", dir: "{{ 'core_' + project }}" }
+  loop_control:
+    loop_var: dir_item
+
+- name: Project VM - Creates Project Directory
+  file:
+    path: "{{ '/var/www/' + project_item.dir }}"
+    state: directory
+    owner: "{{ instance_user | default('ubuntu') }}"
+    group: "{{ instance_user | default('ubuntu') }}"
+  loop:
+    - { domain: "{{ 'hub.' + domain }}", dir: "{{ project }}" }
+    - { domain: "{{ 'core.' + domain }}", dir: "{{ 'core_' + project }}" }
+  loop_control:
+    loop_var: project_item
+
+
+- name: Checkout code to Project Directory
+  ansible.builtin.git:
+    repo: '{{ git_item.repo }}'
+    dest: "{{ '/var/www/' + git_item.dir }}"
+    version: "{{ git_item.branch }}"
+  loop:
+    - { repo: "https://{{ git_user }}:{{ git_pass }}@github.com/dorcas-io/hub-base.git", dir: "{{ project }}", branch: "deploy" }
+    - { repo: "https://{{ git_user }}:{{ git_pass }}@github.com/dorcas-io/core-base.git", dir: "{{ 'core_' + project }}", branch: "deploy" }
+  loop_control:
+    loop_var: git_item
+
+
+
+- name: Optimize Installation
+  shell: |
+    sudo chown -R {{ instance_user | default('ubuntu') }} /var/www/{{ shell_item.dir }}
+    cd /var/www/{{ shell_item.dir }}
+    rm /var/www/{{ shell_item.dir }}/composer.lock
+    composer {{ shell_item.composer }}
+    composer require wildbit/swiftmailer-postmark
+    composer require wildbit/postmark-php
+    composer require fruitcake/laravel-cors
+    sudo chown -R {{ instance_user | default('ubuntu') }}:www-data /var/www/{{ shell_item.dir }}/storage/
+    sudo chmod -R 775 /var/www/{{ shell_item.dir }}/storage/
+    sudo mkdir -p /var/www/{{ shell_item.dir }}/bootstrap/cache
+  register: optimize_output
+  loop:
+    - { dir: "{{ project }}", composer: "update --with-all-dependencies", log_file: "laravel.log", cmd: "sudo ./artisan optimize:clear" }
+    - { dir: "{{ 'core_' + project }}", composer: "install", log_file: "lumen.log", cmd: "sudo ./artisan passport:keys && sudo chown -R {{ instance_user | default('ubuntu') }}:{{ instance_user | default('ubuntu') }} storage/*.key && sudo ./artisan dorcas:setup && sudo ./artisan passport:install && sudo ./artisan cache:clear &&  sudo ./artisan dorcas:setup-partner " }
+  loop_control:
+    loop_var: shell_item
+  async: 500
+  poll: 30
