@@ -79,19 +79,30 @@ create_database_password() {
     # Check if key exists in file
     local file="$PROJECT_FILE_CREDENTIALS"
     local file_key="db_root_password"
+    local file_value=$(generate_random_string)
+    local db_root_username=$(generate_random_string)
 
     if grep -q "^$file_key:" "$file"; then
-        echo "db_root_password already exists in $file."
+        echo "db_root_username and db_root_password already exists in $file."
+
+        provisioning_database_root_username=$(grep "^db_root_username:" $PROJECT_FILE_CREDENTIALS | awk -F ":" '{print $2}')
+        provisioning_database_root_password=$(grep "^db_root_password:" $PROJECT_FILE_CREDENTIALS | awk -F ":" '{print $2}')
     else
-        local file_value=$(generate_random_string)
         if grep -q "leave this line" "$file"; then
             sed -i "/leave this line/i $file_key:$file_value" "$file"
-            echo "db_root_password added to $file."
+            sed -i "/leave this line/i db_root_username:$db_root_username" "$file"
+            echo "db_root_username and db_root_password added to $file."
         else
             echo "$file_key=$file_value" >> "$file"
-            echo "db_root_password added to $file."
+            echo "db_root_username and db_root_password added to $file."
         fi
+        provisioning_database_root_username=$db_root_username
+        provisioning_database_root_password=$file_value
     fi
+
+    # write the username and password to the provisioning file
+    sed -i "s/^provisioning_database_root_username:.*/provisioning_database_root_username:$provisioning_database_root_username/" "$PROJECT_FILE_PROVISIONING"
+    sed -i "s/^provisioning_database_root_password:.*/provisioning_database_root_password:$provisioning_database_root_password/" "$PROJECT_FILE_PROVISIONING"
 }
 
 # Create Database Password if database is selected

@@ -155,7 +155,7 @@ fi
 #     echo -e "Extra project files ($PROJECT_EXTRA_FILES) copied";
 # fi
 
-
+source modullo-includes/check-project.sh # process project details
 
 
 

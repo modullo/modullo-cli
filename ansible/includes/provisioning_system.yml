@@ -168,7 +168,7 @@
     certbot_auto_renew_minute: "30"
     certbot_auto_renew_options: "--quiet --no-self-upgrade"
     certbot_create_if_missing: true
-    certbot_create_method: standalone
+    certbot_create_method: webroot
     certbot_certs:
       - email: "dev@hostville.website"
         webroot: "{{ system_project_directory }}"
@@ -250,7 +250,7 @@
           }
           
           location ~ \.php$ {
-              try_files $uri /index.php =404;
+              try_files $uri $uri/ /index.php$is_args$args;
               fastcgi_split_path_info ^(.+\.php)(/.+)$;
               fastcgi_pass {{ php_cgi }};
               fastcgi_index index.php;
@@ -272,60 +272,64 @@
 # Install System Software for Databases
 #------------------------------------------------------
 
-- name: Project Compute - Install MySQL
+- name: Database Name
+  set_fact:
+    database_name: "{{ infrastructure_db | default('modullo') }}"
+
+- name: Install MySQL
   include_role:
     name: geerlingguy.mysql
     apply:
       become: yes
   vars:
     mysql_root_username: "root"
-    mysql_root_password: "{{ mysql_root_pass }}"
+    mysql_root_password: "{{ provisioning_database_root_password }}"
 
 
 - name: Create new Databases
   community.mysql.mysql_db:
     name:
-      - "sample_db"
+      - "{{ database_name }}"
     state: present
 
-
-- name: Create database user with database privileges
-  community.mysql.mysql_user:
-    host: localhost
-    name: "root"
-    password: "{{ mysql_pass }}"
-    priv:
-      "sample_db.*": 'ALL,GRANT'
-    state: present
-
-
-- name: Re-Grant Database Privileges
-  shell: |
-    mysql -u {{ root }} -p{{ mysql_root_pass }} -e "GRANT ALL PRIVILEGES ON {{ db_item.db }}.* TO '{{ db_item.usr }}'@'localhost'; FLUSH PRIVILEGES;"
-  loop:
-    - { db: "sample_db", usr: "{{ mysql_user }}" }
-  loop_control:
-    loop_var: db_item
-  ignore_errors: true
-  become: true
+# POSSIBLY DO THIS DURING FRAMEWORK OR APP CREATION
+# - name: Create database user with database privileges
+#   community.mysql.mysql_user:
+#     host: localhost
+#     name: "{{ provisioning_database_root_username }}"
+#     password: "{{ provisioning_database_root_password }}"
+#     priv:
+#       "{{ database_name }}.*": 'ALL,GRANT'
+#     state: present
 
 
-- name: Install & Configure Supervisor for Queue (PHP Laravel Apps)
-  include_role:
-    name: geerlingguy.supervisor
-  vars:
-    supervisor_programs:
-      - name: 'modullo-worker'
-        command: sudo php /var/www/{{ project }}/artisan queue:work redis --sleep=3 --tries=3
-        state: present
-        configuration: |
-          autostart=true
-          autorestart=true
-          startretries=3
-          startsecs=1
-          redirect_stderr=true
-          stdout_logfile=/var/www/{{ project }}/storage/logs/modullo-worker.log
-          user=www-data
-          killasgroup=true
-          stopasgroup=true
-  when: provisioning_type == "app" and "'php' in provisioning_software_system" and "'laravel' in provisioning_software_framework"
+# - name: Re-Grant Database Privileges
+#   shell: |
+#     mysql -u "{{ provisioning_database_root_username }}" -p"{{ provisioning_database_root_password }}" -e "GRANT ALL PRIVILEGES ON {{ db_item.db }}.* TO '{{ db_item.usr }}'@'localhost'; FLUSH PRIVILEGES;"
+#   loop:
+#     - { db: "{{ database_name }}", usr: "{{ provisioning_database_root_username }}" }
+#   loop_control:
+#     loop_var: db_item
+#   ignore_errors: true
+#   become: true
+
+# POSSIBLY DO THIS DURING FRAMEWORK OR APP CREATION
+# - name: Install & Configure Supervisor for Queue (PHP Laravel Apps)
+#   include_role:
+#     name: geerlingguy.supervisor
+#   vars:
+#     supervisor_programs:
+#       - name: 'modullo-worker'
+#         command: sudo php /var/www/{{ project }}/artisan queue:work redis --sleep=3 --tries=3
+#         state: present
+#         configuration: |
+#           autostart=true
+#           autorestart=true
+#           startretries=3
+#           startsecs=1
+#           redirect_stderr=true
+#           stdout_logfile=/var/www/{{ project }}/storage/logs/modullo-worker.log
+#           user=www-data
+#           killasgroup=true
+#           stopasgroup=true
+#   when: provisioning_type == "app" and "'php' in provisioning_software_system" and "'laravel' in provisioning_software_framework"

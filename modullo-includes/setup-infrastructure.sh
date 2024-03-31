@@ -36,8 +36,8 @@ determine_terraform_config() {
 
 # Local database array of provider infrastructure
 terraform_database=(
-    "do:project,plan,ready,domain,iaas_provider,options,region,setup_root,do_token,do_droplet_size"
-    "aws:project,plan,ready,domain,iaas_provider,options,region,setup_root,access_key,secret_key,route53_zone,iam_user,aws_vm"
+    "do:project,plan,ready,domain,iaas_provider,options,region,setup_root,db,do_token,do_droplet_size"
+    "aws:project,plan,ready,domain,iaas_provider,options,region,setup_root,db,access_key,secret_key,route53_zone,iam_user,aws_vm"
 )
 
 # Terraform Vars Template
@@ -132,6 +132,7 @@ setup_terraform_config() {
             sed -i "s/^domain: .*/domain: \"$(sed 's/[\.\/&]/\\&/g' <<< "$config_project_domain")\"/" "$ansible_file_project"
             sed -i "s/^iaas_provider: .*/iaas_provider: \"$config_infrastructure_provider\"/" "$ansible_file_project"
             sed -i "s/^setup_root: .*/setup_root: \"$(sed 's/[\/&]/\\&/g' <<< "$config_project_setup_root")\"/" "$ansible_file_project"
+            sed -i "s/^db: .*/db: \"modullo\"/" "$ansible_file_project"
             sed -i "s/^options: .*/options: \"$config_infrastructure_options\"/" "$ansible_file_project"
 
             # update the plan ID in both tfvars, config and yml
@@ -150,6 +151,8 @@ setup_terraform_config() {
             echo "provisioning_software_framework:$config_provisioning_software_framework" >> "$parameters_file_provisioning";
             echo "provisioning_options:$config_provisioning_options" >> "$parameters_file_provisioning";
             echo "provisioning_database:$config_provisioning_database" >> "$parameters_file_provisioning";
+            echo "provisioning_database_root_username:$db_root_username" >> "$parameters_file_provisioning";
+            echo "provisioning_database_root_password:$db_root_password" >> "$parameters_file_provisioning";
 
 
             echo -e "Infrastructure files successfully created/re-created for provider ($config_infrastructure_provider)...\n"

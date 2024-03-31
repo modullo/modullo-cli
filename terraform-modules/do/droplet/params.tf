@@ -29,6 +29,12 @@ variable "setup_root" {
   description = "Project Setup Root Path"
 }
 
+
+variable "db" {
+  description = "Project Database Name"
+}
+
+
 variable "domain" {
   description = "Project Domain"
 }

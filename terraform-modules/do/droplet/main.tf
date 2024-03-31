@@ -82,6 +82,7 @@ resource "digitalocean_domain" "modullo_domain" {
       do_token = var.do_token
       instance-region = var.region
       instance-domain = var.domain
+      db-name = var.db
       instance-private-key = "projects/${var.project}/instance-sshkey"
       instance-ip = try(digitalocean_floating_ip.droplet_ip[0].ip_address, digitalocean_droplet.modullo_droplet_instance.ipv4_address),
       }

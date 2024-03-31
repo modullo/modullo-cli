@@ -8,6 +8,7 @@ module "iaas_provider_module" {
   options = var.options
   region = var.region
   setup_root = var.setup_root
+  db = var.db
   do_token = var.do_token
   do_droplet_size = var.do_droplet_size
 
@@ -43,6 +44,10 @@ variable "region" {
 
 variable "setup_root" {
   description = "Terraform Variable setup_root"
+}
+
+variable "db" {
+  description = "Terraform Variable db"
 }
 
 variable "do_token" {
