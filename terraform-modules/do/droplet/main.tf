@@ -29,7 +29,7 @@ resource "digitalocean_droplet" "modullo_droplet_instance" {
   name   = "modullo-${local.domain_label}"
   region = "${var.region}"
   size   = "${var.do_droplet_size}"
-  image  = "ubuntu-20-04-x64"
+  image  = "ubuntu-22-04-x64"
   monitoring = true
 
   ssh_keys = [digitalocean_ssh_key.instance_key_pair.id]
