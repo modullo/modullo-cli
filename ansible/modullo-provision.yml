@@ -72,6 +72,18 @@
         msg: Infrastructure Provider is {{ infrastructure_iaas_provider }}
 
 
+    - name: Provision non-root user (on root user systems)
+      shell: |
+        adduser --disabled-password --gecos "" --shell /bin/bash --home /home/modullo/ modullo
+        usermod -aG sudo modullo
+        #su - modullo
+
+        sudo cp /etc/sudoers /etc/sudoers.bak
+
+        sudo sed -i '/^root/ a\modullo ALL=(ALL:ALL) NOPASSWD: ALL' /etc/sudoers
+
+      when: infrastructure_iaas_provider == "do" or instance_user == "root"
+
     #------------------------------------------------------
     # Perform OS Level Software Provisioning
     #------------------------------------------------------
@@ -110,12 +122,3 @@
       include_tasks: includes/provisioning_framework.yml
       when: config_provisioning_software_framework == "yes" or config_provisioning_software_framework == true
 
-
-    - name: Print the Infrastructure Provider
-      ansible.builtin.debug:
-        msg: Infrastructure Provider is {{ config_provisioning_software_os }} {{ config_provisioning_software_system }} {{ config_provisioning_software_framework }}
-
-
-    - name: Stop
-      pause:
-        seconds: 50000

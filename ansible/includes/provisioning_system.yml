@@ -21,6 +21,7 @@
 - name: Define System Project Path
   set_fact:
     system_project_directory: "/var/www/{{ project }}"
+    system_app_directory: "/var/www/{{ project }}"
 
 - name: Update System Project Path
   set_fact:
@@ -168,7 +169,7 @@
     certbot_auto_renew_minute: "30"
     certbot_auto_renew_options: "--quiet --no-self-upgrade"
     certbot_create_if_missing: true
-    certbot_create_method: webroot
+    certbot_create_method: standalone
     certbot_certs:
       - email: "dev@hostville.website"
         webroot: "{{ system_project_directory }}"
@@ -285,8 +286,7 @@
     mysql_root_username: "root"
     mysql_root_password: "{{ provisioning_database_root_password }}"
 
-
-- name: Create new Databases
+- name: Create new database
   community.mysql.mysql_db:
     name:
       - "{{ database_name }}"

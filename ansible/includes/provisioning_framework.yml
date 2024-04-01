@@ -5,3 +5,81 @@
     prompt: "Do you wish to proceed? Press Enter to continue or Ctrl+C to re-evaluate"
     seconds: 10
 
+
+# - name: Scan Project Directory
+#   find:
+#     paths: "{{ system_app_directory }}"
+#     recurse: yes
+#   register: files_to_delete
+
+# - name: Empty Project Directory
+#   file:
+#     path: "{{ system_app_directory }}"
+#     state: absent
+#   loop: "{{ files_to_delete.files }}"
+
+
+- name: Delete Project Directory
+  file:
+    path: "{{ system_app_directory }}"
+    state: absent
+
+- name: ReCreate Project Directory
+  file:
+    path: "{{ system_app_directory }}"
+    state: directory
+    owner: "modullo"
+    group: "modullo"
+
+
+- name: Setup New Laravel Framework
+  community.general.composer:
+    command: create-project
+    arguments: laravel/laravel {{ system_app_directory }} ~11.0
+    working_dir: "{{ system_app_directory }}"
+    prefer_dist: true
+  become: true
+  become_user: modullo
+  when: "'laravel' in provisioning_software_framework"
+
+- name: Configure New Laravel Framework
+  shell: |
+    cd {{ system_app_directory }}
+
+    # update env
+
+    # escaped_key=$(sed 's/[^^]/[&]/g; s/\^/\\^/g' <<<"$key")
+    # escaped_value=$(sed 's/[&/\]/\\&/g' <<<"$new_value")
+
+    # Use sed to update the value of the key in the .env file
+    #sed -i "s/^APP_DEBUG=.*/APP_DEBUG=false/" .env
+    sed -i "s/^APP_URL=.*/APP_URL=https://{{ domain }}/" .env
+    sed -i "s/^# DB_CONNECTION=.*/DB_CONNECTION=mysql/" .env
+    sed -i "s/^DB_CONNECTION=.*/DB_CONNECTION=mysql/" .env
+    sed -i "s/^# DB_HOST=.*/DB_HOST=localhost/" .env
+    sed -i "s/^# DB_DATABASE=.*/DB_DATABASE={{ database_name }}/" .env
+    sed -i "s/^# DB_USERNAME=.*/DB_USERNAME=root/" .env
+    sed -i "s/^# DB_PASSWORD=.*/DB_PASSWORD={{ provisioning_database_root_password }}/" .env
+
+    # refresh config
+    php artisan config:clear
+
+    sudo chown -R $USER:www-data storage
+    sudo chown -R $USER:www-data bootstrap/cache
+    sudo chmod -R 775 storage
+    sudo chmod -R 775 bootstrap/cache
+    sudo chmod -R u=rwx,g=rwx,o=rw storage/logs
+    sudo touch storage/logs/laravel.log && > storage/logs/laravel.log
+    sudo chown $USER:www-data storage/logs/laravel.log
+    sudo chmod 775 storage/logs/laravel.log
+    sudo chmod u=rwx,g=rx,o=x artisan
+    find {{ system_app_directory }} -type f -name '*.php' -exec chmod 644 {} \;
+
+    php artisan migrate
+    php artisan optimize
+
+  register: framework_configure_output_laravel
+  async: 500
+  poll: 30
+  when: "'laravel' in provisioning_software_framework"
+
