@@ -15,7 +15,7 @@
   tasks:
     - name: Project VM - Allow Propagation Delay
       pause:
-        seconds: 120
+        seconds: 60
 
     - name: Project VM - Set HostName
       command: hostnamectl --no-ask-password set-hostname modullo_{{ project }}
@@ -78,9 +78,11 @@
         usermod -aG sudo modullo
         #su - modullo
 
-        sudo cp /etc/sudoers /etc/sudoers.bak
+        # sudo cp /etc/sudoers /etc/sudoers.bak
+        # sudo sed -i '/^root/ a\modullo ALL=(ALL:ALL) NOPASSWD: ALL' /etc/sudoers
 
-        sudo sed -i '/^root/ a\modullo ALL=(ALL:ALL) NOPASSWD: ALL' /etc/sudoers
+        sudo sh -c 'echo "modullo ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/modullo'
+        sudo chmod 440 /etc/sudoers.d/modullo
 
       when: infrastructure_iaas_provider == "do" or instance_user == "root"
 

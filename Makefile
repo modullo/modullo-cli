@@ -1,3 +1,6 @@
+modullo:
+	./modullo-install.sh
+
 modullo-setup:
 	./modullo-setup.sh
 

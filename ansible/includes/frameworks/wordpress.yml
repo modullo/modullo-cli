@@ -8,41 +8,11 @@
 
     tar xzvf latest.tar.gz
 
-    sudo
-
     cp /tmp/wordpress/wp-config-sample.php /tmp/wordpress/wp-config.php
 
-    sudo cp -a /tmp/wordpress/. {{ system_app_directory }}
+    cp -a /tmp/wordpress/. {{ system_app_directory }}
 
     sudo chown -R www-data:www-data {{ system_app_directory }}
-
-    nginx_config="/etc/nginx/sites-available/{{ domain }}_ssl.conf"
-
-    location_block1="
-    location = /favicon.ico { log_not_found off; access_log off; }
-    "
-
-    location_block2="
-    location = /robots.txt { log_not_found off; access_log off; allow all; }
-    "
-  
-    location_block3="
-    location ~* \.(css|gif|ico|jpeg|jpg|js|png)$ {
-        expires max;
-        log_not_found off;
-    }
-    "
-
-    # Check if the nginx config file exists
-    if [ -f "$nginx_config" ]; then
-        sudo sed -i "/location /i $location_block3" "$nginx_config"
-        sudo sed -i "/location /i $location_block2" "$nginx_config"
-        sudo sed -i "/location /i $location_block1" "$nginx_config"
-    else
-        echo "Nginx configuration file $nginx_config does not exist."
-    fi
-
-    sudo systemctl reload nginx
 
   register: framework_configure_output_wordpress_new
   async: 500
@@ -51,68 +21,48 @@
   become_user: modullo
 
 
+- name: Setup New WordPress Framework (Nginx Config Domain)
+  ansible.builtin.lineinfile:
+    path: "/etc/nginx/sites-enabled/{{ domain }}_ssl.conf"
+    regexp: '^    root'
+    line: "    root /var/www/{{ project }};"
+  ignore_errors: true
 
-  
+- name: Setup New WordPress Framework (Nginx Config Files)
+  ansible.builtin.lineinfile:
+    path: "/etc/nginx/sites-enabled/{{ domain }}_ssl.conf"
+    insertafter: '^    error_log'
+    line: "\n\n    {{ wordpress_config_item.config }}"
+  loop:
+    - { config: 'location = /favicon.ico { log_not_found off; access_log off; }' }
+    - { config: 'location = /robots.txt { log_not_found off; access_log off; allow all; }' }
+    - { config: 'location ~* \.(css|gif|ico|jpeg|jpg|js|png)$ { expires max; log_not_found off; }' }
+  loop_control:
+    loop_var: wordpress_config_item
+  ignore_errors: true
+
+
 - name: Update WordPress Framework
   shell: |
     # update config
 
     wordpress_config_path={{ system_app_directory }}/wp-config.php
 
-    # Default values
-    no_extra_special_chars=0
-    no_special_chars=0
-    length=64
+    sudo sed -i "s/^define( 'DB_NAME.*/define( 'DB_NAME', '{{ database_name }}' );/" $wordpress_config_path
+    sudo sed -i "s/^define( 'DB_USER.*/define( 'DB_USER', 'root' );/" $wordpress_config_path
+    sudo sed -i "s/^define( 'DB_PASSWORD.*/define( 'DB_PASSWORD', '{{ provisioning_database_root_password }}' );/" $wordpress_config_path
+    sudo sed -i "s/^define( 'FS_METHOD.*/define( 'FS_METHOD', 'direct' );/" $wordpress_config_path
+    
+    sudo sed -i "s/^define( 'AUTH_KEY.*/define( 'AUTH_KEY', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
+    sudo sed -i "s/^define( 'SECURE_AUTH_KEY.*/define( 'SECURE_AUTH_KEY', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
+    sudo sed -i "s/^define( 'LOGGED_IN_KEY.*/define( 'FS_METHOD', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
+    sudo sed -i "s/^define( 'NONCE_KEY.*/define( 'NONCE_KEY', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
+    sudo sed -i "s/^define( 'AUTH_SALT.*/define( 'AUTH_SALT', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
+    sudo sed -i "s/^define( 'SECURE_AUTH_SALT.*/define( 'SECURE_AUTH_SALT', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
+    sudo sed -i "s/^define( 'LOGGED_IN_SALT.*/define( 'LOGGED_IN_SALT', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
+    sudo sed -i "s/^define( 'NONCE_SALT.*/define( 'NONCE_SALT', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
 
-    # Arguments handling
-    while (( ${#} > 0 )); do
-      case "${1}" in
-        ( '--no-extra-special-chars' ) no_extra_special_chars=1 ;;
-        ( '--no-special-chars' ) no_special_chars=1 ;;
-        ( '--length='* ) length="${1#*=}" ;;
-        ( * ) print_usage
-              exit 1;;
-      esac
-      shift
-    done
-
-
-    function wp_generate_password() {
-      # Args
-      local length="$(test $1 && echo $1 || echo 12 )"
-      local special_chars="$(test $2 && echo $2 || echo 1 )"
-      local extra_special_chars="$(test $3 && echo $3 || echo 0 )"
-
-      chars='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-      [[ $special_chars != 0 ]] && chars="$chars"'!@#$%^&*()'
-      [[ $extra_special_chars != 0 ]] && chars="$chars"'-_ []{}<>~`+=,.;:/?|'
-
-      password='';
-      for i in $(seq 1 $length); do
-      password="${password}${chars:$(( RANDOM % ${#chars} )):1}"
-      done
-
-      echo "$password"
-    }
-
-    # Process variables
-    if [ $no_special_chars = 1 ]; then special_chars=0; else special_chars=1; fi
-    if [ $no_extra_special_chars = 1 ]; then extra_special_chars=0; else extra_special_chars=1; fi
-
-    # Use sed to update the value of the key in the .env file
-    sed -i "s/^define('AUTH_KEY.*/define('AUTH_KEY',         '$(wp_generate_password "$length" "$special_chars" "$extra_special_chars")');/" $wordpress_config_path
-    sed -i "s/^define('SECURE_AUTH_KEY.*/define('SECURE_AUTH_KEY',  '$(wp_generate_password "$length" "$special_chars" "$extra_special_chars")');/" $wordpress_config_path
-    sed -i "s/^define('LOGGED_IN_KEY.*/define('LOGGED_IN_KEY',    '$(wp_generate_password "$length" "$special_chars" "$extra_special_chars")');/" $wordpress_config_path
-    sed -i "s/^define('NONCE_KEY.*/define('NONCE_KEY',        '$(wp_generate_password "$length" "$special_chars" "$extra_special_chars")');/" $wordpress_config_path
-    sed -i "s/^define('AUTH_SALT.*/define('AUTH_SALT',        '$(wp_generate_password "$length" "$special_chars" "$extra_special_chars")');/" $wordpress_config_path
-    sed -i "s/^define('SECURE_AUTH_SALT.*/define('SECURE_AUTH_SALT', '$(wp_generate_password "$length" "$special_chars" "$extra_special_chars")');/" $wordpress_config_path
-    sed -i "s/^define('LOGGED_IN_SALT.*/define('LOGGED_IN_SALT',   '$(wp_generate_password "$length" "$special_chars" "$extra_special_chars")');/" $wordpress_config_path
-    sed -i "s/^define('NONCE_SALT.*/define('NONCE_SALT',       '$(wp_generate_password "$length" "$special_chars" "$extra_special_chars")');/" $wordpress_config_path
-
-    sed -i "s/^define( 'DB_NAME.*/define( 'DB_NAME', '{{ database_name }}' );/" $wordpress_config_path
-    sed -i "s/^define( 'DB_USER.*/define( 'DB_USER', 'root' );/" $wordpress_config_path
-    sed -i "s/^define( 'DB_PASSWORD.*/define( 'DB_PASSWORD', '{{ provisioning_database_root_password }}' );/" $wordpress_config_path
-    sed -i "s/^define( 'FS_METHOD.*/define( 'FS_METHOD', 'direct' );/" $wordpress_config_path
+    sudo service nginx restart
 
   register: framework_configure_output_wordpress_update
   async: 500
