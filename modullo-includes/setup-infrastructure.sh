@@ -36,8 +36,8 @@ determine_terraform_config() {
 
 # Local database array of provider infrastructure
 terraform_database=(
-    "do:project,plan,ready,domain,iaas_provider,options,region,setup_root,db,do_token,do_droplet_size"
-    "aws:project,plan,ready,domain,iaas_provider,options,region,setup_root,db,access_key,secret_key,route53_zone,iam_user,aws_vm"
+    "do:project,plan,ready,domain,email,iaas_provider,options,region,setup_root,db,do_token,do_droplet_size"
+    "aws:project,plan,ready,domain,email,iaas_provider,options,region,setup_root,db,access_key,secret_key,route53_zone,iam_user,aws_vm"
 )
 
 # Terraform Vars Template
@@ -123,6 +123,7 @@ setup_terraform_config() {
             # Fill some key tfvars
             sed -i "s/^project = .*/project = \"$config_project_name\"/" "$teraform_file_project"
             sed -i "s/^domain = .*/domain = \"$(sed 's/[\.\/&]/\\&/g' <<< "$config_project_domain")\"/" "$teraform_file_project"
+            sed -i "s/^email = .*/email = \"$config_project_email\"/" "$teraform_file_project"
             sed -i "s/^iaas_provider = .*/iaas_provider = \"$config_infrastructure_provider\"/" "$teraform_file_project"
             sed -i "s/^setup_root = .*/setup_root = \"$(sed 's/[\/&]/\\&/g' <<< "$config_project_setup_root")\"/" "$teraform_file_project"
             sed -i "s/^options = .*/options = \"$config_infrastructure_options\"/" "$teraform_file_project"
@@ -130,6 +131,7 @@ setup_terraform_config() {
             # Fill some key yaml
             sed -i "s/^project: .*/project: \"$config_project_name\"/" "$ansible_file_project"
             sed -i "s/^domain: .*/domain: \"$(sed 's/[\.\/&]/\\&/g' <<< "$config_project_domain")\"/" "$ansible_file_project"
+            sed -i "s/^email: .*/email: \"$config_project_email\"/" "$ansible_file_project"
             sed -i "s/^iaas_provider: .*/iaas_provider: \"$config_infrastructure_provider\"/" "$ansible_file_project"
             sed -i "s/^setup_root: .*/setup_root: \"$(sed 's/[\/&]/\\&/g' <<< "$config_project_setup_root")\"/" "$ansible_file_project"
             sed -i "s/^db: .*/db: \"modullo\"/" "$ansible_file_project"

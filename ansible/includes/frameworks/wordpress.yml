@@ -1,24 +1,82 @@
 ---
 
-- name: Setup New WordPress Framework
+- name: Install WordPress Framework (CLI)
   shell: |
-    cd /tmp
+    # install cli
 
-    curl -LO https://wordpress.org/latest.tar.gz
+    curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
 
-    tar xzvf latest.tar.gz
+    php wp-cli.phar --info
 
-    cp /tmp/wordpress/wp-config-sample.php /tmp/wordpress/wp-config.php
+    chmod +x wp-cli.phar
+    sudo mv wp-cli.phar /usr/local/bin/wp
 
-    cp -a /tmp/wordpress/. {{ system_app_directory }}
+  register: framework_configure_output_wordpress_update
+  async: 500
+  poll: 30
+  become: true
+  become_user: modullo
 
-    sudo chown -R www-data:www-data {{ system_app_directory }}
+
+- name: Setup New WordPress Framework (WP-CLI)
+  shell: |
+    cd {{ system_app_directory }}
+    wp core download
+    echo "{{ provisioning_database_root_password }}" > password.txt
+    wp config create --dbname={{ database_name }} --dbuser=root --dbprefix=modullo_ --prompt=dbpass < password.txt
+    rm password.txt
+    # wp db create
+    admin_username=$(head /dev/urandom | tr -dc 'a-z' | head -c 10)
+    admin_password=$(head /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c 10)
+    echo "$admin_username:$admin_password" > login.txt
+    wp core install --url={{ domain }} --title="Modullo" --admin_user=$admin_username --admin_password=$admin_password --admin_email={{ email }}
+    wp plugin update --all
 
   register: framework_configure_output_wordpress_new
   async: 500
   poll: 30
   become: true
   become_user: modullo
+
+
+# - name: Setup New WordPress Framework (Raw)
+#   shell: |
+#     cd /tmp
+
+#     curl -LO https://wordpress.org/latest.tar.gz
+
+#     tar xzvf latest.tar.gz
+
+#     cp /tmp/wordpress/wp-config-sample.php /tmp/wordpress/wp-config.php
+
+#     cp -a /tmp/wordpress/. {{ system_app_directory }}
+
+#     sudo chown -R www-data:www-data {{ system_app_directory }}
+
+
+#     wordpress_config_path={{ system_app_directory }}/wp-config.php
+
+#     sudo sed -i "s/^define( 'DB_NAME.*/define( 'DB_NAME', '{{ database_name }}' );/" $wordpress_config_path
+#     sudo sed -i "s/^define( 'DB_USER.*/define( 'DB_USER', 'root' );/" $wordpress_config_path
+#     sudo sed -i "s/^define( 'DB_PASSWORD.*/define( 'DB_PASSWORD', '{{ provisioning_database_root_password }}' );/" $wordpress_config_path
+#     sudo sed -i "s/^define( 'FS_METHOD.*/define( 'FS_METHOD', 'direct' );/" $wordpress_config_path
+    
+#     sudo sed -i "s/^define( 'AUTH_KEY.*/define( 'AUTH_KEY', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
+#     sudo sed -i "s/^define( 'SECURE_AUTH_KEY.*/define( 'SECURE_AUTH_KEY', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
+#     sudo sed -i "s/^define( 'LOGGED_IN_KEY.*/define( 'FS_METHOD', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
+#     sudo sed -i "s/^define( 'NONCE_KEY.*/define( 'NONCE_KEY', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
+#     sudo sed -i "s/^define( 'AUTH_SALT.*/define( 'AUTH_SALT', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
+#     sudo sed -i "s/^define( 'SECURE_AUTH_SALT.*/define( 'SECURE_AUTH_SALT', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
+#     sudo sed -i "s/^define( 'LOGGED_IN_SALT.*/define( 'LOGGED_IN_SALT', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
+#     sudo sed -i "s/^define( 'NONCE_SALT.*/define( 'NONCE_SALT', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
+
+#     sudo service nginx restart
+
+#   register: framework_configure_output_wordpress_new
+#   async: 500
+#   poll: 30
+#   become: true
+#   become_user: modullo
 
 
 - name: Setup New WordPress Framework (Nginx Config Domain)
@@ -41,31 +99,3 @@
     loop_var: wordpress_config_item
   ignore_errors: true
 
-
-- name: Update WordPress Framework
-  shell: |
-    # update config
-
-    wordpress_config_path={{ system_app_directory }}/wp-config.php
-
-    sudo sed -i "s/^define( 'DB_NAME.*/define( 'DB_NAME', '{{ database_name }}' );/" $wordpress_config_path
-    sudo sed -i "s/^define( 'DB_USER.*/define( 'DB_USER', 'root' );/" $wordpress_config_path
-    sudo sed -i "s/^define( 'DB_PASSWORD.*/define( 'DB_PASSWORD', '{{ provisioning_database_root_password }}' );/" $wordpress_config_path
-    sudo sed -i "s/^define( 'FS_METHOD.*/define( 'FS_METHOD', 'direct' );/" $wordpress_config_path
-    
-    sudo sed -i "s/^define( 'AUTH_KEY.*/define( 'AUTH_KEY', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
-    sudo sed -i "s/^define( 'SECURE_AUTH_KEY.*/define( 'SECURE_AUTH_KEY', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
-    sudo sed -i "s/^define( 'LOGGED_IN_KEY.*/define( 'FS_METHOD', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
-    sudo sed -i "s/^define( 'NONCE_KEY.*/define( 'NONCE_KEY', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
-    sudo sed -i "s/^define( 'AUTH_SALT.*/define( 'AUTH_SALT', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
-    sudo sed -i "s/^define( 'SECURE_AUTH_SALT.*/define( 'SECURE_AUTH_SALT', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
-    sudo sed -i "s/^define( 'LOGGED_IN_SALT.*/define( 'LOGGED_IN_SALT', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
-    sudo sed -i "s/^define( 'NONCE_SALT.*/define( 'NONCE_SALT', '{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters'], length=64) }}' );/" $wordpress_config_path
-
-    sudo service nginx restart
-
-  register: framework_configure_output_wordpress_update
-  async: 500
-  poll: 30
-  become: true
-  become_user: modullo

@@ -55,6 +55,7 @@ config_project_id="$(yq '.modulloProject.id' $PROJECT_FILE_CONFIG)"; echo "Proje
 config_plan_id="$(yq '.modulloProject.plan' $PROJECT_FILE_CONFIG)"; echo "Plan ID: $config_plan_id"
 config_project_setup_root="$(yq '.modulloProject.setup_root' $PROJECT_FILE_CONFIG)"; echo "ProjectSetup Root: $config_project_setup_root"
 config_project_domain="$(yq '.modulloProject.domain' $PROJECT_FILE_CONFIG)"; echo "Plan ID: $config_project_domain"
+config_project_email="$(yq '.modulloProject.email' $PROJECT_FILE_CONFIG)"; echo "Project Email: $config_project_email"
 config_infrastructure_provider="$(yq '.modulloProject.infrastructure.provider' $PROJECT_FILE_CONFIG)"; echo "Project Infrastructure Provider: $config_infrastructure_provider"
 config_infrastructure_type="$(yq '.modulloProject.infrastructure.type' $PROJECT_FILE_CONFIG)"; echo "Project Infrastructure Type: $config_infrastructure_type"
 config_infrastructure_options="$(yq '.modulloProject.infrastructure.options' $PROJECT_FILE_CONFIG)"; echo "Project Infrastructure Options: $config_infrastructure_options"
