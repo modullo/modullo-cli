@@ -13,14 +13,36 @@
     - params_path_provisioning: "projects/{{ project }}/parameters_provisioning"
     
   tasks:
-    - name: Project VM - Allow Propagation Delay
+    - name: Infrastructure Propagation Delay (Optional)
       pause:
-        seconds: 60
+        prompt: "Do you wish to proceed or pause? Press Ctrl+C to pause/re-evaluate or do nothing to automatically continue..."
+        seconds: 30
 
     - name: Project VM - Set HostName
       command: hostnamectl --no-ask-password set-hostname modullo_{{ project }}
       
     - include_vars: vars/{{ project }}.yml
+
+
+    #------------------------------------------------------
+    # Extract Base Infrastructure Credentials
+    #------------------------------------------------------
+
+    - name: Copy Base Credentials File (from Control to Compute Machine)
+      copy:
+        src: "{{ setup_root }}/projects/{{ project }}/{{ project }}.credentials"
+        dest: ~/params_credentials_base
+
+    - name: Read Credentials File (from Compute Machine)
+      slurp:
+        src: ~/params_credentials_base
+      register: params_credentials_base_file_content
+      ignore_errors: true
+
+    - name: Parse Key-Value Pairs from Credentials File
+      set_fact:
+        credential_pairs_base: "{{ (params_credentials_base_file_content.content | b64decode).split('\n') }}"
+      when: params_credentials_base_file_content.content is defined
 
 
     #------------------------------------------------------
@@ -87,6 +109,15 @@
       when: infrastructure_iaas_provider == "do" or instance_user == "root"
 
     #------------------------------------------------------
+    # Output Final Framework Results
+    #------------------------------------------------------
+    - name: Prepare Framework Output Defaults
+      set_fact:
+        framework_message: "Default Framework Message"
+        framework_login: "Default Framework Login"
+        framework_data: {}
+
+    #------------------------------------------------------
     # Perform OS Level Software Provisioning
     #------------------------------------------------------
     - name: Decide OS Level Software Provisioning
@@ -124,3 +155,28 @@
       include_tasks: includes/provisioning_framework.yml
       when: config_provisioning_software_framework == "yes" or config_provisioning_software_framework == true
 
+
+
+    #------------------------------------------------------
+    # Output Final Framework Results
+    #------------------------------------------------------
+
+    - name: Output Final Results as set during by Framework Provisioning
+      debug:
+        msg: "{{ framework_items.message }}"
+      loop:
+        - { message: "{{ framework_message }}" }
+        - { message: "{{ framework_login }}" }
+      loop_control:
+        loop_var: framework_items
+      when: config_provisioning_software_framework == "yes" or config_provisioning_software_framework == true
+
+    - name: Output any additional Results as set during by Framework Provisioning
+      debug:
+        msg: |
+          {% if framework_data is defined and framework_data | length > 0 %}
+          {% for key, value in framework_data.items() %}
+          {{ key }}: {{ value }}
+          {% endfor %}
+          {% endif %}
+      when: (config_provisioning_software_framework == "yes" or config_provisioning_software_framework == true) and framework_data is defined and framework_data | length > 0

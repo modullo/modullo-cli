@@ -40,6 +40,23 @@ ansible-galaxy install -r ./ansible/requirements.yml
 if [[ "$modulloCreateProvisioning" == "yes" ]]; then
     # Provision Infrastructure using Ansible
 
+    echo -e "\nWaiting 60 seconds for Infrastructure to propagate fully. Skip? Press 'Y' or 'yes' to skip."
+
+    for ((i=60; i>=0; i--)); do
+        echo -ne "Time remaining: $i seconds \r"
+        read -t 1 -n 1 -s input
+        if [[ $input =~ [Yy] ]]; then
+            echo -e "\nSkipped! Proceeding with provisioning...\n"
+            break;
+        fi
+    done
+
+    if [[ ! $input =~ [Yy] ]]; then
+        echo -e "\nTime's up! Proceeding with provisioning...\n"
+        # Add your remaining script here
+    fi
+
+
     ansible-playbook -i projects/${project}/ansible_inventory ./ansible/modullo-provision.yml --ssh-common-args="-o IdentitiesOnly=yes -o StrictHostKeyChecking=no" --extra-vars "@./ansible/vars/${project}.yml"
 
 else

@@ -6,7 +6,6 @@
 
 
 
-
 - name: Project VM - Empty Project Directory
   file:
     path: "{{ '/var/www/' + dir_item.dir }}"

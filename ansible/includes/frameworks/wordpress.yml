@@ -1,42 +1,156 @@
 ---
 
-- name: Install WordPress Framework (CLI)
+- name: Install WordPress CLI
   shell: |
-    # install cli
+      curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
 
-    curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+      php wp-cli.phar --info
 
-    php wp-cli.phar --info
+      chmod +x wp-cli.phar
+      sudo mv wp-cli.phar /usr/local/bin/wp
 
-    chmod +x wp-cli.phar
-    sudo mv wp-cli.phar /usr/local/bin/wp
-
-  register: framework_configure_output_wordpress_update
+  register: framework_configure_output_wordpress_install
   async: 500
   poll: 30
   become: true
   become_user: modullo
+
+
+- name: Register Framework Instalation Status (WordPress)
+  command: cd {{ system_app_directory }} && wp core is-installed
+  register: wordpress_installed
+  changed_when: false
+  become: true
+  become_user: modullo
+  ignore_errors: true
+
+# - name: Display Installation Instalation Status
+#   debug:
+#     msg: "WordPress is installed"
+#   when: wordpress_installed.rc == 0
+
+
+- name: Delete Project Directory
+  file:
+    path: "{{ system_app_directory }}"
+    state: absent
+  #when: wordpress_installed.rc != 0
+
+- name: ReCreate Project Directory
+  file:
+    path: "{{ system_app_directory }}"
+    state: directory
+    owner: "modullo"
+    group: "modullo"
+  #when: wordpress_installed.rc != 0
 
 
 - name: Setup New WordPress Framework (WP-CLI)
   shell: |
     cd {{ system_app_directory }}
     wp core download
-    echo "{{ provisioning_database_root_password }}" > password.txt
-    wp config create --dbname={{ database_name }} --dbuser=root --dbprefix=modullo_ --prompt=dbpass < password.txt
+    echo "{{ provisioning_database_root_password }}" > ~/password.txt
+    wp config create --dbname={{ database_name }} --dbuser=root --dbprefix=modullo_ --prompt=dbpass < ~/password.txt
     rm password.txt
     # wp db create
     admin_username=$(head /dev/urandom | tr -dc 'a-z' | head -c 10)
     admin_password=$(head /dev/urandom | tr -dc 'a-zA-Z0-9' | head -c 10)
-    echo "$admin_username:$admin_password" > login.txt
+    echo "$admin_username:$admin_password" > ~/login.txt
+    # rm login.txt
     wp core install --url={{ domain }} --title="Modullo" --admin_user=$admin_username --admin_password=$admin_password --admin_email={{ email }}
     wp plugin update --all
-
-  register: framework_configure_output_wordpress_new
+    echo "==MODULLO_OUTPUT_START==$admin_username:$admin_password==MODULLO_OUTPUT_END=="
+  register: framework_configure_output_wordpress_setup
   async: 500
   poll: 30
   become: true
   become_user: modullo
+  #when: wordpress_installed.rc != 0
+
+
+- name: Extract Wordpress Login Key Pair from CLI Setup Output
+  set_fact:
+    key_value_pair: "{{ framework_configure_output_wordpress_setup.stdout | regex_search('==MODULLO_OUTPUT_START==(\\w+):(\\w+)==MODULLO_OUTPUT_END==') }}"
+  #when: wordpress_installed.rc != 0
+
+- name: Print the Output with Regex
+  ansible.builtin.debug:
+    msg: Debug is {{ key_value_pair }}
+  #when: wordpress_installed.rc != 0
+
+- name: Extract username and password from the string
+  set_fact:
+    wordpress_username: "{{ key_value_pair | regex_search('==MODULLO_OUTPUT_START==([^:]+):([^=]+)==MODULLO_OUTPUT_END==', '\\1') }}"
+    wordpress_password: "{{ key_value_pair | regex_search('==MODULLO_OUTPUT_START==([^:]+):([^=]+)==MODULLO_OUTPUT_END==', '\\2') }}"
+  #when: wordpress_installed.rc != 0
+
+- name: Register Framework Output Facts
+  set_fact:
+    framework_message: "Your Wordpress Setup is complete!"
+    framework_login: "Username is {{ wordpress_username }} and password is {{ wordpress_password }}. Your account email is {{ email }}."
+  #when: wordpress_installed.rc != 0
+
+- name: Define Framework Login Details
+  set_fact:
+    wordpress_login_pair: "admin_username:{{ wordpress_username }}\nadmin_passsword:{{ wordpress_password }}"
+  #when: wordpress_installed.rc != 0
+
+- name: Merge Admin Login Details into Credentials File
+  set_fact:
+    wordpress_credential_pairs: "{{ credential_pairs_base | default([]) + wordpress_login_pair.split('\n') }}"
+  #when: wordpress_installed.rc != 0
+
+- name: Create updated Credentials
+  set_fact:
+    wordpress_credentials_updated_content: "{{ wordpress_credential_pairs | join('\n') }}"
+  #when: wordpress_installed.rc != 0
+
+- name: Write updated Credentials to Compute Credentials File
+  copy:
+    content: "{{ wordpress_credentials_updated_content }}"
+    dest: "~/params_credentials_base"
+  #when: wordpress_installed.rc != 0
+
+- name: Download updated Credentials to Control Credentials File
+  fetch:
+    src: "~/params_credentials_base"
+    dest: "{{ setup_root }}/projects/{{ project }}/{{ project }}.credentials"
+    flat: yes
+  #when: wordpress_installed.rc != 0
+
+
+- name: Setup New WordPress Framework (Nginx Config Domain)
+  ansible.builtin.lineinfile:
+    path: "{{ wordpress_nginx_item.path }}"
+    regexp: '^    root'
+    line: "    root /var/www/{{ project }};"
+  loop:
+    - { path: '/etc/nginx/sites-enabled/{{ domain }}.conf' }
+    - { path: '/etc/nginx/sites-enabled/{{ domain }}_ssl.conf' }
+  loop_control:
+    loop_var: wordpress_nginx_item
+  ignore_errors: true
+
+- name: Setup New WordPress Framework (Nginx Config Files)
+  ansible.builtin.lineinfile:
+    path: "{{ wordpress_config_item.path }}"
+    insertafter: '^    error_log'
+    line: "\n\n    {{ wordpress_config_item.config }}"
+  loop:
+    - { path: '/etc/nginx/sites-enabled/{{ domain }}.conf', config: 'location = /favicon.ico { log_not_found off; access_log off; }' }
+    - { path: '/etc/nginx/sites-enabled/{{ domain }}.conf', config: 'location = /robots.txt { log_not_found off; access_log off; allow all; }' }
+    - { path: '/etc/nginx/sites-enabled/{{ domain }}.conf', config: 'location ~* \.(css|gif|ico|jpeg|jpg|js|png)$ { expires max; log_not_found off; }' }
+    - { path: '/etc/nginx/sites-enabled/{{ domain }}_ssl.conf', config: 'location = /favicon.ico { log_not_found off; access_log off; }' }
+    - { path: '/etc/nginx/sites-enabled/{{ domain }}_ssl.conf', config: 'location = /robots.txt { log_not_found off; access_log off; allow all; }' }
+    - { path: '/etc/nginx/sites-enabled/{{ domain }}_ssl.conf', config: 'location ~* \.(css|gif|ico|jpeg|jpg|js|png)$ { expires max; log_not_found off; }' }
+  loop_control:
+    loop_var: wordpress_config_item
+  ignore_errors: true
+
+
+
+
+
 
 
 # - name: Setup New WordPress Framework (Raw)
@@ -77,25 +191,3 @@
 #   poll: 30
 #   become: true
 #   become_user: modullo
-
-
-- name: Setup New WordPress Framework (Nginx Config Domain)
-  ansible.builtin.lineinfile:
-    path: "/etc/nginx/sites-enabled/{{ domain }}_ssl.conf"
-    regexp: '^    root'
-    line: "    root /var/www/{{ project }};"
-  ignore_errors: true
-
-- name: Setup New WordPress Framework (Nginx Config Files)
-  ansible.builtin.lineinfile:
-    path: "/etc/nginx/sites-enabled/{{ domain }}_ssl.conf"
-    insertafter: '^    error_log'
-    line: "\n\n    {{ wordpress_config_item.config }}"
-  loop:
-    - { config: 'location = /favicon.ico { log_not_found off; access_log off; }' }
-    - { config: 'location = /robots.txt { log_not_found off; access_log off; allow all; }' }
-    - { config: 'location ~* \.(css|gif|ico|jpeg|jpg|js|png)$ { expires max; log_not_found off; }' }
-  loop_control:
-    loop_var: wordpress_config_item
-  ignore_errors: true
-

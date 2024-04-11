@@ -23,7 +23,7 @@ provider_exists() {
 
 
 if provider_exists "$available_providers" "$config_infrastructure_provider"; then
-    echo -e "Specified IAAS Provider would be used"
+    echo -e "Specified IAAS Provider would be used\n"
     iaas_provider="${config_infrastructure_provider}"
 else
     echo -e "Specified IAAS Provider is not valid or not permitted. \n"; exit;
@@ -39,7 +39,7 @@ declare -A terraformConfig  # Declare an associative array to store contact data
 determine_terraform_config "$iaas_provider" terraformConfig
 
 if [ ${#terraformConfig[@]} -eq 0 ]; then
-    echo -e "Provider Data NOT FOUND for $iaas_provider."; exit;
+    echo -e "Provider Data NOT FOUND for $iaas_provider.\n"; exit;
 else
     echo -e "Provider data FOUND for $iaas_provider \n"
 

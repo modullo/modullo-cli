@@ -7,7 +7,7 @@ modulloProject:
   plan: 0
   setup_root: "/home/user/modullo/project/path"
   domain: "domain.com"
-  email: "email@domain.com"
+  email: "ifeoluwa.olawoye@gmail.com"
   infrastructure:
     instance: "new" # Default instance - Only "new" supported at the moment.
     provider: "alibaba"

@@ -2,7 +2,7 @@
 
 - name: Beginning Framework Level Software Provisioning...
   pause:
-    prompt: "Do you wish to proceed? Press Enter to continue or Ctrl+C to re-evaluate"
+    prompt: "Do you wish to proceed or pause? Press Ctrl+C to pause/re-evaluate or do nothing to automatically continue..."
     seconds: 10
 
 
@@ -17,19 +17,6 @@
 #     path: "{{ system_app_directory }}"
 #     state: absent
 #   loop: "{{ files_to_delete.files }}"
-
-
-- name: Delete Project Directory
-  file:
-    path: "{{ system_app_directory }}"
-    state: absent
-
-- name: ReCreate Project Directory
-  file:
-    path: "{{ system_app_directory }}"
-    state: directory
-    owner: "modullo"
-    group: "modullo"
 
 
 - name: Perform Laravel Provisioning
