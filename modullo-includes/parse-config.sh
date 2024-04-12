@@ -60,10 +60,11 @@ config_infrastructure_provider="$(yq '.modulloProject.infrastructure.provider' $
 config_infrastructure_type="$(yq '.modulloProject.infrastructure.type' $PROJECT_FILE_CONFIG)"; echo "Project Infrastructure Type: $config_infrastructure_type"
 config_infrastructure_options="$(yq '.modulloProject.infrastructure.options' $PROJECT_FILE_CONFIG)"; echo "Project Infrastructure Options: $config_infrastructure_options"
 config_provisioning_database="$(yq '.modulloProject.provisioning.database' $PROJECT_FILE_CONFIG)"; echo "Project Provisioning Database: $config_provisioning_database"
-config_provisioning_type="$(yq '.modulloProject.provisioning.type' $PROJECT_FILE_CONFIG)"; #echo "Project Provisioning Type: $config_provisioning_type"
-config_provisioning_software_os="$(yq '.modulloProject.provisioning.software_os' $PROJECT_FILE_CONFIG)"; #echo "Project OS Software: $config_provisioning_software_os"
-config_provisioning_software_system="$(yq '.modulloProject.provisioning.software_system' $PROJECT_FILE_CONFIG)"; #echo "Project System Software: $config_provisioning_software_system"
-config_provisioning_software_framework="$(yq '.modulloProject.provisioning.software_framework' $PROJECT_FILE_CONFIG)"; #echo "Project System Software: $config_provisioning_software_framework"
-config_provisioning_options="$(yq '.modulloProject.provisioning.options' $PROJECT_FILE_CONFIG)"; #echo "Project Provisioning Options: $config_provisioning_options"
+config_provisioning_type="$(yq '.modulloProject.provisioning.type' $PROJECT_FILE_CONFIG)";
+config_provisioning_software_os="$(yq '.modulloProject.provisioning.software_os' $PROJECT_FILE_CONFIG)";
+config_provisioning_software_system="$(yq '.modulloProject.provisioning.software_system' $PROJECT_FILE_CONFIG)";
+config_provisioning_software_framework="$(yq '.modulloProject.provisioning.software_framework' $PROJECT_FILE_CONFIG)";
+config_provisioning_options="$(yq '.modulloProject.provisioning.options' $PROJECT_FILE_CONFIG)";
+config_provisioning_commands="$(yq '.modulloProject.provisioning.commands' $PROJECT_FILE_CONFIG)";
 
 echo -e "\n"

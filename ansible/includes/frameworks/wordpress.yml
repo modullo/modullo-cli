@@ -80,8 +80,8 @@
 
 - name: Extract username and password from the string
   set_fact:
-    wordpress_username: "{{ key_value_pair | regex_search('==MODULLO_OUTPUT_START==([^:]+):([^=]+)==MODULLO_OUTPUT_END==', '\\1') }}"
-    wordpress_password: "{{ key_value_pair | regex_search('==MODULLO_OUTPUT_START==([^:]+):([^=]+)==MODULLO_OUTPUT_END==', '\\2') }}"
+    wordpress_username: "{{ key_value_pair | regex_search('==MODULLO_OUTPUT_START==([^:]+):([^=]+)==MODULLO_OUTPUT_END==', '\\1') | first }}"
+    wordpress_password: "{{ key_value_pair | regex_search('==MODULLO_OUTPUT_START==([^:]+):([^=]+)==MODULLO_OUTPUT_END==', '\\2') | first }}"
   #when: wordpress_installed.rc != 0
 
 - name: Register Framework Output Facts

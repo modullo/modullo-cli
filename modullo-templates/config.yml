@@ -5,9 +5,11 @@ modulloProject:
   version: "v1"
   description: "Change The World!"
   plan: 0
-  setup_root: "/home/user/modullo/project/path"
+  setup_root: "/home/user/modullo/path"
+  project_root: "/home/user/project/path"
   domain: "domain.com"
   email: "ifeoluwa.olawoye@gmail.com"
+  deployment: "local"
   infrastructure:
     instance: "new" # Default instance - Only "new" supported at the moment.
     provider: "alibaba"
@@ -21,6 +23,5 @@ modulloProject:
     software_framework: "wordpress"
     app_repository: "http://github.com"
     database: "mysql" # Specify database engine. Leave blank to not create a database
-    commands:
-      - echo "Hello World!" > sample.txt
+    commands: "echo 'Hello World!' > sample.txt"
     options: "option-1,option-2" # Additional provisioning options
