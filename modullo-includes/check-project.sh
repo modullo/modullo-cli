@@ -22,22 +22,46 @@ then
 
     source modullo-includes/parse-config.sh # parse configuration file and extract data
 
-    # Extract Necessary Variables from Project CREDENTIALS file
-    while IFS=: read -r key pair
-    do
-    echo -e "\n Reading $key..."
+    # Lets check both setup_root and project_root paths
 
-      if [[ "$key" == "git_user" ]]; then
-          credentials_git_user="$pair"
-          echo -e "Github Username READ: $pair \n"
-      fi
+    current_dir=$(dirname "$(readlink -f "$0")")
+
+    # parent_dir=$(dirname "$script_dir")
+
+    setup_root_folder=$config_project_setup_root
+
+    # Check if the current script's top-level directory matches the setup root folder
+    if [ "$current_dir" = "$setup_root_folder" ]; then
+        echo -e "Setup Root folder path is valid...\n"
+    else
+        echo -e "It appears your specified Setup Root folder (\"$setup_root_folder\" as defined in $PROJECT_FILE_CONFIG) does not match the actual path ($current_dir). Please rectify...\n"; exit;
+    fi
+
+    project_root_folder=$config_project_project_root
+
+    # Check if the project root folder exists
+    if [ -d "$project_root_folder" ]; then
+        echo -e "Projects Root folder path is valid...\n"
+    else
+        echo -e "It appears your specified Project Root folder (\"$project_root_folder\" as defined in $PROJECT_FILE_CONFIG) does not exist. Please rectify...\n"; exit;
+    fi
+
+    # Extract Necessary Variables from Project CREDENTIALS file
+    # while IFS=: read -r key pair
+    # do
+    # echo -e "\n Reading $key..."
+
+    #   if [[ "$key" == "git_user" ]]; then
+    #       credentials_git_user="$pair"
+    #       echo -e "Github Username READ: $pair \n"
+    #   fi
     
-      if [[ "$key" == "git_pass" ]]; then
-          credentials_git_pass="$pair"
-          echo -e "Github Password / Token READ \n"
-      fi
+    #   if [[ "$key" == "git_pass" ]]; then
+    #       credentials_git_pass="$pair"
+    #       echo -e "Github Password / Token READ \n"
+    #   fi
     
-    done < "$PROJECT_FILE_CREDENTIALS"
+    # done < "$PROJECT_FILE_CREDENTIALS"
 
 else 
 

@@ -47,10 +47,10 @@ else
     mkdir -p "$(dirname ${PROJECT_FILE_CREDENTIALS})" && touch "$PROJECT_FILE_CREDENTIALS"
 
     # Read the template file, replace placeholders, and store the result in Project Credentials File
-    SAMPLE_PARAMETER1="sample-value-1"
-    SAMPLE_PARAMETER2="sample-value-2"
-    sed -e "s/{{SAMPLE_VALUE_1}}/$SAMPLE_PARAMETER1/g" \
-        -e "s/{{SAMPLE_VALUE_2}}/$SAMPLE_PARAMETER2/g" \
+    SAMPLE_PARAMETER_1="sample-parameter-1"
+    SAMPLE_VALUE_1="sample-value-1"
+    sed -e "s/{{SAMPLE_PARAM_1}}/$SAMPLE_PARAMETER_1/g" \
+        -e "s/{{SAMPLE_VAL_1}}/$SAMPLE_VALUE_1/g" \
         "modullo-templates/credentials.tmpl" > "$PROJECT_FILE_CREDENTIALS"
 
     echo -e "Project Credentials File ($PROJECT_FILE_CREDENTIALS) created \n";

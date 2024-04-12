@@ -54,6 +54,7 @@ config_project_name="$(yq '.modulloProject.name' $PROJECT_FILE_CONFIG)"; echo "P
 config_project_id="$(yq '.modulloProject.id' $PROJECT_FILE_CONFIG)"; echo "Project ID: $config_project_id"
 config_plan_id="$(yq '.modulloProject.plan' $PROJECT_FILE_CONFIG)"; echo "Plan ID: $config_plan_id"
 config_project_setup_root="$(yq '.modulloProject.setup_root' $PROJECT_FILE_CONFIG)"; echo "ProjectSetup Root: $config_project_setup_root"
+config_project_project_root="$(yq '.modulloProject.project_root' $PROJECT_FILE_CONFIG)";
 config_project_domain="$(yq '.modulloProject.domain' $PROJECT_FILE_CONFIG)"; echo "Plan ID: $config_project_domain"
 config_project_email="$(yq '.modulloProject.email' $PROJECT_FILE_CONFIG)"; echo "Project Email: $config_project_email"
 config_infrastructure_provider="$(yq '.modulloProject.infrastructure.provider' $PROJECT_FILE_CONFIG)"; echo "Project Infrastructure Provider: $config_infrastructure_provider"
@@ -65,6 +66,7 @@ config_provisioning_software_os="$(yq '.modulloProject.provisioning.software_os'
 config_provisioning_software_system="$(yq '.modulloProject.provisioning.software_system' $PROJECT_FILE_CONFIG)";
 config_provisioning_software_framework="$(yq '.modulloProject.provisioning.software_framework' $PROJECT_FILE_CONFIG)";
 config_provisioning_options="$(yq '.modulloProject.provisioning.options' $PROJECT_FILE_CONFIG)";
+config_provisioning_commands="$(yq '.modulloProject.provisioning.commands' $PROJECT_FILE_CONFIG)";
 config_provisioning_commands="$(yq '.modulloProject.provisioning.commands' $PROJECT_FILE_CONFIG)";
 
 echo -e "\n"
