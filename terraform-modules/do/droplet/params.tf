@@ -40,7 +40,6 @@ variable "deployment" {
 }
 
 
-
 variable "db" {
   description = "Project Database Name"
 }
@@ -48,6 +47,10 @@ variable "db" {
 
 variable "domain" {
   description = "Project Domain"
+}
+
+variable "email" {
+  description = "Project Email"
 }
 
 variable "region" {

@@ -37,7 +37,7 @@ determine_terraform_config() {
 
 # Local database array of provider infrastructure
 terraform_database=(
-    "local:project,plan,ready,domain,email,deployment,iaas_provider,options,region,setup_root,project_root,db,do_token,do_droplet_size"
+    "local:project,plan,ready,domain,email,deployment,iaas_provider,options,setup_root,project_root"
     "do:project,plan,ready,domain,email,deployment,iaas_provider,options,region,setup_root,project_root,db,do_token,do_droplet_size"
     "aws:project,plan,ready,domain,email,deployment,iaas_provider,options,region,setup_root,project_root,db,access_key,secret_key,route53_zone,iam_user,aws_vm"
 )
