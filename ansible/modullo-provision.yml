@@ -25,6 +25,16 @@
 
 
     #------------------------------------------------------
+    # Add local ubuntu users to sudoers if running local deployment
+    #------------------------------------------------------
+
+    - name: Add local user to sudoers (if necessary)
+      include_tasks: includes/local_sudoers_check.yml
+      when: deployment == "local"
+      vars:
+        local_modullo_user: "ubuntu"  # Specify the Ubuntu user here
+
+    #------------------------------------------------------
     # Extract Base Infrastructure Credentials
     #------------------------------------------------------
 

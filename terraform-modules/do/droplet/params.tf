@@ -30,6 +30,17 @@ variable "setup_root" {
 }
 
 
+variable "project_root" {
+  description = "Project Setup Root Path"
+}
+
+
+variable "deployment" {
+  description = "Project Deployment Mode"
+}
+
+
+
 variable "db" {
   description = "Project Database Name"
 }

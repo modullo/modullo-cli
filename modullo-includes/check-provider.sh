@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Determing IAAS provider
-available_providers="aws do"
+available_providers="local aws do"
 
 provider_exists() {
     local provider_list="$1"

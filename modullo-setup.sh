@@ -2,6 +2,8 @@
 
 echo -e "MODULLO >> SETTING UP A PROJECT \n"
 
+modulloCommand="setup"
+
 echo -e "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - \n"
 
 
@@ -20,6 +22,7 @@ PROJECT_FILE_CREDENTIALS="projects/${project}/${project}.credentials"
 PROJECT_FILE_TERRAFORM="projects/${project}/${project}.tfvars"
 PROJECT_FILE_ANSIBLE="ansible/vars/${project}.yml"
 PROJECT_FILE_BACKUP="projects/${project}/${project}.backup"
+PROJECT_FILE_PROVISIONING="projects/${project}/parameters_provisioning"
 #PROJECT_EXTRA_FILES="files"
 
 
@@ -64,7 +67,7 @@ then
     # Run Provider Infrastructure setup if necessary
     if [ -z "${plan}" ]
     then
-        # Do nothing if nor flagged
+        # Do nothing if not flagged
         echo -e "...\n"
     else
 
@@ -144,6 +147,15 @@ else
     mkdir -p "$(dirname ${PROJECT_FILE_BACKUP})" && touch "$PROJECT_FILE_BACKUP"
 
     echo -e "Backup Parameter File ($PROJECT_FILE_BACKUP) created \n";
+fi
+
+if test -f "$PROJECT_FILE_PROVISIONING";
+then
+    echo -e "Project Provisioning Parameter File exists already \n"
+else
+    mkdir -p "$(dirname ${PROJECT_FILE_PROVISIONING})" && touch "$PROJECT_FILE_PROVISIONING"
+
+    echo -e "Project Provisioning Parameter File ($PROJECT_FILE_PROVISIONING) created \n";
 fi
 
 # if test -f "$PROJECT_EXTRA_FILES";

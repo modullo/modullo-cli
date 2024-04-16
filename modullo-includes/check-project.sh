@@ -65,7 +65,7 @@ then
 
 else 
 
-    echo -e "Project Files ($PROJECT_FILE_CREDENTIALS, $PROJECT_FILE_TERRAFORM, $PROJECT_FILE_ANSIBLE, $PROJECT_FILE_CONFIG, $PROJECT_FILE_BACKUP) NOT FOUND! \nPlease GENERATE with "make modullo-setup project=abc123", CONFIGURE necessary parameters and then retry...\n";
+    echo -e "Project Files ($PROJECT_FILE_CREDENTIALS, $PROJECT_FILE_TERRAFORM, $PROJECT_FILE_ANSIBLE, $PROJECT_FILE_CONFIG, $PROJECT_FILE_BACKUP) NOT FOUND! \nPlease GENERATE with "modullo setup project=abc123", CONFIGURE necessary parameters and then retry...\n";
     exit;
 
 fi
@@ -107,7 +107,7 @@ create_database_password() {
     local db_root_username=$(generate_random_string)
 
     if grep -q "^$file_key:" "$file"; then
-        echo "db_root_username and db_root_password already exists in $file.\n"
+        echo -e "db_root_username and db_root_password already exists in $file.\n"
 
         provisioning_database_root_username=$(grep "^db_root_username:" $PROJECT_FILE_CREDENTIALS | awk -F ":" '{print $2}')
         provisioning_database_root_password=$(grep "^db_root_password:" $PROJECT_FILE_CREDENTIALS | awk -F ":" '{print $2}')
@@ -115,10 +115,10 @@ create_database_password() {
         if grep -q "leave this line" "$file"; then
             sed -i "/leave this line/i $file_key:$file_value" "$file"
             sed -i "/leave this line/i db_root_username:$db_root_username" "$file"
-            echo "db_root_username and db_root_password added to $file.\n"
+            echo -e "db_root_username and db_root_password added to $file.\n"
         else
             echo "$file_key=$file_value" >> "$file"
-            echo "db_root_username and db_root_password added to $file.\n"
+            echo -e "db_root_username and db_root_password added to $file.\n"
         fi
         provisioning_database_root_username=$db_root_username
         provisioning_database_root_password=$file_value

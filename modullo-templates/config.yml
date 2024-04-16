@@ -5,23 +5,23 @@ modulloProject:
   version: "v1"
   description: "Change The World!"
   plan: 0
-  setup_root: "/home/user/modullo/path"
-  project_root: "/home/user/project/path"
-  domain: "domain.com"
+  setup_root: "/home/user/modullo-cli"
+  project_root: "/var/www/projects"
+  domain: "cerebro.dorcas.io"
   email: "ifeoluwa.olawoye@gmail.com"
   deployment: "local"
   infrastructure:
     instance: "new" # Default instance - Only "new" supported at the moment.
-    provider: "alibaba"
+    provider: "null"
     type: "vm"
     os: "ubuntu" # Default OS. Only "ubuntu" supported at the moment.
-    options: "option-1,option-2" # Additional provisioning options
+    options: "" # Additional infrastructure options
   provisioning:
     type: "app" # Specify provisioning type, e.g (app, framework)
     software_os: "apt-transport-https,gnupg2"
-    software_system: "nginx,php"
-    software_framework: "wordpress"
+    software_system: "nginx"
+    software_framework: ""
     app_repository: "http://github.com"
     database: "mysql" # Specify database engine. Leave blank to not create a database
     commands: "echo 'Hello World!' > sample.txt"
-    options: "option-1,option-2" # Additional provisioning options
+    options: "" # Additional provisioning options

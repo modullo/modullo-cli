@@ -1,8 +1,10 @@
 #!/bin/bash
 
-echo "MODULLO >> CREATING A PROJECT"
+echo "MODULLO >> CREATING A PROJECT\n"
 
-echo "- - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+modulloCommand="create"
+
+echo -e "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - \n"
 
 
 modulloCreateInfrastructure="no"

@@ -1,0 +1,20 @@
+---
+
+- name: Add user to sudoers without password prompt
+  hosts: localhost
+  become: true
+
+  tasks:
+    - name: Check if user is already in sudoers
+      ansible.builtin.shell:
+        cmd: "grep -q '^{{ local_modullo_user }} ALL=(ALL) NOPASSWD:ALL' /etc/sudoers"
+      register: user_in_sudoers
+      changed_when: false  # Do not consider the task as changed if the user is already in sudoers
+
+    - name: Add user to sudoers without password prompt
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        line: "{{ local_modullo_user }} ALL=(ALL) NOPASSWD:ALL"
+        validate: 'visudo -cf %s'  # Validate the sudoers file syntax before saving changes
+        insertafter: EOF  # Insert the line at the end of the file
+      when: not user_in_sudoers.rc  # Only execute if the user is not already in sudoers
