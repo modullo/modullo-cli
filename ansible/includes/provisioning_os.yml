@@ -4,6 +4,8 @@
   pause:
     prompt: "Do you wish to proceed or pause? Press Ctrl+C to pause/re-evaluate or do nothing to automatically continue..."
     seconds: 10
+#  delegate_to: "{{ inventory_hostname }}"
+#  when: inventory_hostname in groups['specific_group']
 
 
 - name: Gather and merge OS Software lists

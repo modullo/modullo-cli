@@ -18,17 +18,22 @@
     - { dir: 'env-files', permission: 'u=rwx,g=rx,o=rx' }
 
 
-- name: Define System Project Path
+- name: Define System Project Path (Remote)
   set_fact:
     system_project_directory: "/var/www/{{ project }}"
     system_app_directory: "/var/www/{{ project }}"
+  delegate_to: modulloRemote
+
+- name: Define System Project Path (Local)
+  set_fact:
+    system_project_directory: "{{ project_root }}/{{ project }}"
+    system_app_directory: "{{ project_root }}/{{ project }}"
+  delegate_to: modulloLocal
 
 - name: Update System Project Path
   set_fact:
-    system_project_directory: "/var/www/{{ project }}/public"
+    system_project_directory: "{{ system_project_directory }}/public"
   when: provisioning_type == "app" and "'php' in provisioning_software_system"
-
-
 
 #------------------------------------------------------
 # Create Directories
@@ -58,21 +63,25 @@
   set_fact:
     aws_access_key_id: "{{ infrastructure_aws_access_key_id }}"
   when: infrastructure_iaas_provider == "aws"
+  delegate_to: modulloRemote
 
 - name: Extract AWS_ACCESS_KEY_SECRET from Credentials
   set_fact:
     aws_access_key_secret: "{{ infrastructure_aws_access_key_secret }}"
   when: infrastructure_iaas_provider == "aws"
+  delegate_to: modulloRemote
 
 - name: Extract AWS_ACCESS_REGION from Credentials
   set_fact:
     aws_region: "{{ infrastructure_aws_region }}"
   when: infrastructure_iaas_provider == "aws"
+  delegate_to: modulloRemote
 
 - name: Extract DIGITAL OCEAN TOKEN from Credentials
   set_fact:
     do_token: "{{ infrastructure_do_token }}"
   when: infrastructure_iaas_provider == "do"
+  delegate_to: modulloRemote
 
 
 #------------------------------------------------------
@@ -85,6 +94,7 @@
   vars:
     php_version: "{{ php_version_number }}"
   when: provisioning_type == "app" and "'php' in provisioning_software_system"
+  delegate_to: modulloRemote
 
 - name: Project Compute - Install PHP
   include_role:
@@ -100,11 +110,13 @@
     php_version: "{{ php_version_number }}"
     #php_sendmail_path: "{{ mail_mailhog_path + '/mhsendmail' }}"
   when: provisioning_type == "app" and "'php' in provisioning_software_system"
+  delegate_to: modulloRemote
 
 - name: Project Compute - Install Composer
   include_role:
     name: geerlingguy.composer
   when: provisioning_type == "app" and "'php' in provisioning_software_system"
+  delegate_to: modulloRemote
 
 - name: Project Compute - Install Nginx Web Server (PHP)
   include_role:
@@ -154,6 +166,7 @@
   loop_control:
     loop_var: vhost_item
   when: provisioning_type == "app" and "'php' in provisioning_software_system"
+  delegate_to: modulloRemote
 
 
 #------------------------------------------------------
@@ -178,6 +191,7 @@
     certbot_create_standalone_stop_services:
       - nginx
   when: provisioning_type == "app"
+  delegate_to: modulloRemote
 
 
 # - name: Install Wildcard SSL (AWS Route53 Plugin)
@@ -268,6 +282,7 @@
   loop_control:
     loop_var: vhost_ssl_item
   when: provisioning_type == "app" and "'php' in provisioning_software_system"
+  delegate_to: modulloRemote
 
 #------------------------------------------------------
 # Install System Software for Databases
@@ -291,6 +306,7 @@
     name:
       - "{{ database_name }}"
     state: present
+  delegate_to: modulloRemote
 
 # POSSIBLY DO THIS DURING FRAMEWORK OR APP CREATION
 # - name: Create database user with database privileges

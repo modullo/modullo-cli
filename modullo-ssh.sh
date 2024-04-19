@@ -37,15 +37,15 @@ fi
 #EXTRACT SSH PARAMETERS
 
 # Extract the IP address following the keyword
-INSTANCE_DATA=$(grep -A1 "\[compute\]" "$PROJECT_FILE_ANSIBLE" | awk '/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/{print; exit}')
+INSTANCE_DATA=$(grep -A1 "\[modulloRemote\]" "$PROJECT_FILE_ANSIBLE" | awk '/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/{print; exit}')
 IFS=' # ' read -ra instance_data_parts <<< "$INSTANCE_DATA"
 INSTANCE_IP="${instance_data_parts[0]}"
 
 # Check if an IP address was found
 if [ -n "$INSTANCE_IP" ]; then
-    echo -e "Instance IP address found: $INSTANCE_IP\n"
+    echo -e "Remote Instance IP address found: $INSTANCE_IP\n"
 else
-    echo -e "No Instance IP address found\n";
+    echo -e "No Remote Instance IP address found\n";
     exit;
 fi
 

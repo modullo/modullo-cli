@@ -59,7 +59,12 @@ if [[ "$modulloCreateProvisioning" == "yes" ]]; then
     fi
 
 
-    ansible-playbook -i projects/${project}/ansible_inventory ./ansible/modullo-provision.yml --ssh-common-args="-o IdentitiesOnly=yes -o StrictHostKeyChecking=no" --extra-vars "@./ansible/vars/${project}.yml"
+    ansible-playbook -i projects/${project}/inventory ./ansible/modullo-provision.yml --ssh-common-args="-o IdentitiesOnly=yes -o StrictHostKeyChecking=no" \
+    --extra-vars "@./ansible/vars/${project}.yml" \
+    --extra-vars "@./ansible/group_vars/all.yml" \
+    --extra-vars "params_path_project=projects/${project}/${project}.params" \
+    --extra-vars "params_path_infrastructure=projects/${project}/parameters_infrastructure" \
+    --extra-vars "params_path_provisioning=projects/${project}/parameters_provisioning"
 
 else
 

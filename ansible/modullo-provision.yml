@@ -1,109 +1,173 @@
 ---
-- name: MODULLO PROVISIONING
-  hosts: compute
-  gather_facts: true
-  vars_files:
-    - group_vars/all.yml
+# - hosts: modulloRemote
+#   remote_user: root
+#   become: true
+#   become_user: root
+#   gather_facts: true
+  # vars_files:
+  #   - group_vars/all.yml
+  # vars:
+  #   - params_path_project: "projects/{{ project }}/{{ project }}.params"
+  #   - params_path_infrastructure: "projects/{{ project }}/parameters_infrastructure"
+  #   - params_path_provisioning: "projects/{{ project }}/parameters_provisioning"
+   
+  # tasks:
+  #   - name: MODULLO PROVISIONING (ON Remote)
+
+# - hosts: modulloLocal
+  # vars_files:
+  #   - group_vars/all.yml
+  # vars:
+  #   - params_path_project: "projects/{{ project }}/{{ project }}.params"
+  #   - params_path_infrastructure: "projects/{{ project }}/parameters_infrastructure"
+  #   - params_path_provisioning: "projects/{{ project }}/parameters_provisioning"
+  # tasks:
+  #   - name: MODULLO PROVISIONING (ON Local)
+
+- hosts: modulloRemote
   remote_user: root
   become: true
   become_user: root
-  vars:
-    - params_path_project: "projects/{{ project }}/{{ project }}.params"
-    - params_path_infrastructure: "projects/{{ project }}/parameters_infrastructure"
-    - params_path_provisioning: "projects/{{ project }}/parameters_provisioning"
-    
+  gather_facts: true
   tasks:
     - name: Infrastructure Propagation Delay (Optional)
       pause:
         prompt: "Do you wish to proceed or pause? Press Ctrl+C to pause/re-evaluate or do nothing to automatically continue..."
         seconds: 30
+      when: iaas_provider != "local" 
 
+- hosts: modulloRemote
+  remote_user: root
+  become: true
+  become_user: root
+  gather_facts: true
+  tasks:
     - name: Project VM - Set HostName
       command: hostnamectl --no-ask-password set-hostname modullo_{{ project }}
+      when: iaas_provider != "local" 
       
-    - include_vars: vars/{{ project }}.yml
+#    - include_vars: vars/{{ project }}.yml
 
 
     #------------------------------------------------------
     # Add local ubuntu users to sudoers if running local deployment
     #------------------------------------------------------
 
+- hosts: modulloLocal
+  tasks:
     - name: Add local user to sudoers (if necessary)
       include_tasks: includes/local_sudoers_check.yml
-      when: deployment == "local"
+      when: deployment == "local" or iaas_provider == "local" 
       vars:
         local_modullo_user: "ubuntu"  # Specify the Ubuntu user here
+  become: true
+  become_user: root
 
     #------------------------------------------------------
     # Extract Base Infrastructure Credentials
     #------------------------------------------------------
-
+- hosts: modulloRemote
+  remote_user: root
+  become: true
+  become_user: root
+  gather_facts: true 
+  tasks:
     - name: Copy Base Credentials File (from Control to Compute Machine)
       copy:
         src: "{{ setup_root }}/projects/{{ project }}/{{ project }}.credentials"
         dest: ~/params_credentials_base
+      when: iaas_provider != "local"
 
     - name: Read Credentials File (from Compute Machine)
       slurp:
         src: ~/params_credentials_base
       register: params_credentials_base_file_content
       ignore_errors: true
+      when: iaas_provider != "local"
 
     - name: Parse Key-Value Pairs from Credentials File
       set_fact:
         credential_pairs_base: "{{ (params_credentials_base_file_content.content | b64decode).split('\n') }}"
-      when: params_credentials_base_file_content.content is defined
+      when: params_credentials_base_file_content.content is defined and iaas_provider != "local"
 
 
     #------------------------------------------------------
     # Extract & Setup Infrastructure Credentials
     #------------------------------------------------------
 
+- hosts: modulloRemote
+  remote_user: root
+  become: true
+  become_user: root
+  gather_facts: true
+  tasks:
     - name: Copy Infrastructure Credentials File (from Control to Compute Machine)
       copy:
         src: "{{ setup_root }}/{{ params_path_infrastructure }}"
         dest: ~/params_infrastructure
+      when: iaas_provider != "local"
 
     - name: Read Infrastructure Credentials File (from Compute Machine)
       slurp:
         src: ~/params_infrastructure
       register: file_content_params_infrastructure
       ignore_errors: true
+      when: iaas_provider != "local"
 
     - name: Set variables from Infrastructure Credentials File
       set_fact:
         "{{ item.split(':')[0] }}": "{{ item.split(':')[1] }}"
       with_items: "{{ file_content_params_infrastructure.content | b64decode | split('\n') }}"
-      when: "':' in item"
+      when: "':' in item and iaas_provider != 'local'"
 
 
     #------------------------------------------------------
     # Extract & Setup Provisioning Credentials
     #------------------------------------------------------
 
+- hosts: modulloRemote
+  remote_user: root
+  become: true
+  become_user: root
+  gather_facts: true
+  tasks:
     - name: Copy Provisioning Credentials File (from Control to Compute Machine)
       copy:
         src: "{{ setup_root }}/{{ params_path_provisioning }}"
         dest: ~/params_provisioning
+      when: iaas_provider != "local"
 
     - name: Read Provisioning Credentials File (from Compute Machine)
       slurp:
         src: ~/params_provisioning
       register: file_content_params_provisioning
       ignore_errors: true
+      when: iaas_provider != "local"
 
     - name: Set variables from Provisioning Credentials File
       set_fact:
         "{{ item.split(':')[0] }}": "{{ item.split(':')[1] }}"
       with_items: "{{ file_content_params_provisioning.content | b64decode | split('\n') }}"
-      when: "':' in item"
+      when: "':' in item and iaas_provider != 'local'"
 
 
+- hosts: modulloHosts
+  tasks:
     - name: Print the Infrastructure Provider
       ansible.builtin.debug:
-        msg: Infrastructure Provider is {{ infrastructure_iaas_provider }}
+        msg: Infrastructure Provider is {{ iaas_provider }}. Deployment Mode is {{ deployment }}
 
 
+    #------------------------------------------------------
+    # Provision Non-Root User (optional)
+    #------------------------------------------------------
+
+- hosts: modulloRemote
+  remote_user: root
+  become: true
+  become_user: root
+  gather_facts: true
+  tasks:
     - name: Provision non-root user (on root user systems)
       shell: |
         adduser --disabled-password --gecos "" --shell /bin/bash --home /home/modullo/ modullo
@@ -116,11 +180,14 @@
         sudo sh -c 'echo "modullo ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/modullo'
         sudo chmod 440 /etc/sudoers.d/modullo
 
-      when: infrastructure_iaas_provider == "do" or instance_user == "root"
+      when: iaas_provider == "do" or instance_user == "root"
 
     #------------------------------------------------------
     # Output Final Framework Results
     #------------------------------------------------------
+
+- hosts: modulloHosts
+  tasks:
     - name: Prepare Framework Output Defaults
       set_fact:
         framework_message: "Default Framework Message"
@@ -130,6 +197,8 @@
     #------------------------------------------------------
     # Perform OS Level Software Provisioning
     #------------------------------------------------------
+- hosts: modulloHosts
+  tasks:
     - name: Decide OS Level Software Provisioning
       set_fact:
         config_provisioning_software_os: "yes"
@@ -138,7 +207,6 @@
     - name: Perform OS Level Software Provisioning
       include_tasks: includes/provisioning_os.yml
       when: config_provisioning_software_os == "yes" or config_provisioning_software_os == true
-
 
     #------------------------------------------------------
     # Perform System Level Software Provisioning
@@ -164,7 +232,6 @@
     - name: Perform Framework Level Software Provisioning
       include_tasks: includes/provisioning_framework.yml
       when: config_provisioning_software_framework == "yes" or config_provisioning_software_framework == true
-
 
 
     #------------------------------------------------------

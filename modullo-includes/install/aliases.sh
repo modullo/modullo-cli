@@ -13,8 +13,14 @@ function modullo() {
         create)
             make modullo-create ${@:2}
             ;;
+        ssh)
+            make modullo-ssh ${@:2}
+            ;;
+        remove)
+            make modullo-remove ${@:2}
+            ;;
         *)
-            echo "Usage: modullo [setup|create] project=<project_name>"
+            echo "Usage: modullo [setup|create|ssh|remove] project=<project_name>"
             ;;
     esac
 }
